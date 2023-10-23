@@ -10,6 +10,8 @@ const ScreendoorRevTableName = ScreendoorTableName + "_REV";
 const ScreendoorFields = [
 	"RESPONSE_ID",
 	"RESPONSE_NUM",
+	"INITIAL_RESPONSE_ID",
+	"ARCHIVED_ID",
 	"RESPONSE_JSON",
 	"AIRTABLE_JSON",
 	"AIRTABLE_JSON_BO",
@@ -57,7 +59,6 @@ const Forms = [
 	["8110", "Renewal", "ren", "Ren1"],
 	["9026", "Renewal", "ren", "Ren2"],
 	["9436", "Renewal", "ren", "Ren3"]
-// TODO: what is form 9396?
 //	["8110", "Renewal", "biz", "Ren1"],
 //	["9026", "Renewal", "biz", "Ren2"],
 //	["9436", "Renewal", "biz", "Ren3"]
@@ -171,16 +172,15 @@ output.markdown(`Starting at **${new Date().toLocaleString()}**`);
 const result = await chain(
 	context,
 	[
-//		importMetadataFromJSON,
-//		console.log,
-//		clearExistingRecords,
-//		convertScreendoorDataToAirtableData,
-		groupSubmissionsByFormAndInitialID,
-//		createSubmissions,
+		importMetadataFromJSON,
+		clearExistingRecords,
+		convertScreendoorDataToAirtableData,
+//		groupSubmissionsByFormAndInitialID,
+		createSubmissions,
 		createReviewData,
 		createReviews,
 		updateSubmissionsWithProjectID,
-//		createMetadataRecords,
+		createMetadataRecords,
 	]
 );
 
@@ -255,6 +255,7 @@ async function convertScreendoorDataToAirtableData(
 	const screendoorRevTable = base.getTable(ScreendoorRevTableName);
 	const airtableDataByInitialIDByFormID = new DefaultMap(GroupedArray);
 	const fieldNameMappings = getNameMappings();
+	const allowedFormIDs = Forms.info("biz").map(({ id }) => id);
 
 	function getSelectFromName(
 		name)
@@ -270,9 +271,17 @@ async function convertScreendoorDataToAirtableData(
 		fieldMetadata,
 		overrides = {})
 	{
-		const data = typeof json === "string"
-			? JSON.parse(json)
-			: json;
+		let data = json;
+
+		if (typeof json === "string") {
+			try {
+				data = JSON.parse(json);
+			} catch (e) {
+					// in case the JOSN field was accidentally edited, log the string so we can find it
+				console.error(json);
+				throw e;
+			}
+		}
 
 		entries(data).forEach(([key, value]) => {
 			const mappedKey = fieldNameMappings[key];
@@ -288,7 +297,13 @@ async function convertScreendoorDataToAirtableData(
 
 			if (!(key in fieldMetadata)) {
 				console.error(`Unknown key: ${key} ${data.RESPONSE_NUM} ${data.email}`);
-	// TODO: this should probably throw to stop the processing instead of skipping a key and losing the data
+// TODO: this should probably throw to stop the processing instead of skipping a key and losing the data
+
+				return;
+			} else if (key === "SCREENDOOR_BUSINESS_PERMIT") {
+					// some tables have this field, and some don't, but none of them seem to need it, so just delete it so that
+					// it doesn't cause any errors
+				delete data[key];
 
 				return;
 			}
@@ -343,40 +358,32 @@ async function convertScreendoorDataToAirtableData(
 			// submissions after the sorted revisions.
 		.sort(by("SUBMITTED_AT"))
 		.concat(await getRecordObjects(screendoorTable, ScreendoorFields))
-// TODO: probably should error if there is no Airtable JSON
-		.filter(({ AIRTABLE_JSON }) => AIRTABLE_JSON)
+		// make sure we're not including rogue 9396 forms, as well as all the revisions with null JSON
+		.filter(({ AIRTABLE_JSON, SCREENDOOR_FORM_ID }) => AIRTABLE_JSON && allowedFormIDs.includes(SCREENDOOR_FORM_ID))
 		.forEach(({
 			RESPONSE_ID,
 			RESPONSE_NUM,
+			INITIAL_RESPONSE_ID,
+			ARCHIVED_ID,
 			RESPONSE_JSON,
 			AIRTABLE_JSON,
 			AIRTABLE_JSON_BO,
 			SCREENDOOR_FORM_ID: formID
 		}) => {
-			const { initial_response_id } = JSON.parse(RESPONSE_JSON);
-
-// TODO: RESPONSE_ID from the Airtable record should be the same as initial_response_id?
-//  in that case, don't need to parse RESPONSE_JSON at all, which would save time
-(initial_response_id && initial_response_id != RESPONSE_ID) && console.error("initial and response IDs don't match", initial_response_id, RESPONSE_ID);
-
-			const initialID = initial_response_id ?? RESPONSE_ID;
+			const initialID = INITIAL_RESPONSE_ID ?? RESPONSE_ID;
 			const overrides = {
 					// this key is in the Airtable JSON, but for the revisions, it's not the ID of the original submission; it's some
 					// other, unrelated ID.  but we need the original response ID to link the revisions to the originals.  so overwrite
 					// the RESPONSE_ID field in the Airtable data with the one from Screendoor.  the revisions also won't have the
 					// sequential_id in the JSON, so take it from the RESPONSE_NUM field in the record and make sure it's a string,
 					// since that's what submission tables expect.
-				RESPONSE_ID,
+				RESPONSE_ID: initialID,
 				RESPONSE_NUM: String(RESPONSE_NUM),
-					// we want to give current submissions a blank SUBMISSION_ID, but a 0 to revisions.  this makes
-					// it possible to distinguish them when generating Form.io records.
-				SUBMISSION_ID: typeof initial_response_id !== "undefined" ? "" : "0",
+					// we want to give current submissions a blank SUBMISSION_ID, but a 0 to revisions.  this makes it possible
+					// to distinguish them when generating Form.io records.  ARCHIVED_ID is only set on revisions.
+				SUBMISSION_ID: ARCHIVED_ID ? "0" : "",
 			};
 			const data = getDataFromJSON(AIRTABLE_JSON, submissionsTableMetadataByFormID[formID], overrides);
-
-				// some tables have this field, and some don't, but none of them seem to need it, so just delete it so that
-				// it doesn't cause any errors
-			delete data.SCREENDOOR_BUSINESS_PERMIT;
 
 			airtableDataByInitialIDByFormID.get(formID).push(initialID, data);
 
@@ -384,10 +391,17 @@ async function convertScreendoorDataToAirtableData(
 					// 5804 records return the Initial Application data in the AIRTABLE_JSON field and have another JSON field
 					// for the data that was separated out into the Business Ownership form
 				const boFormID = Forms.BO.id;
-				const metadata = submissionsTableMetadataByFormID[boFormID];
-				const data = getDataFromJSON(AIRTABLE_JSON_BO, metadata, overrides);
+				const tableMetadata = submissionsTableMetadataByFormID[boFormID];
+					// we want to add the count of this array in the Screendoor JSON to the BO submission
+				const { responses: { wj1tb99y: screendoorBizOwners } } = JSON.parse(RESPONSE_JSON);
 
-				airtableDataByInitialIDByFormID.get(boFormID).push(initialID, data);
+				if (Array.isArray(screendoorBizOwners)) {
+						// the Form.io form can only show up to 5 business owners, so limit the count
+					overrides.bizOwnerNumber = Math.min(screendoorBizOwners.length, 5);
+				}
+
+				airtableDataByInitialIDByFormID.get(boFormID).push(initialID,
+					getDataFromJSON(AIRTABLE_JSON_BO, tableMetadata, overrides));
 			}
 		});
 console.log(airtableDataByInitialIDByFormID.getAll());
@@ -520,8 +534,8 @@ async function createReviewData(
 	context)
 {
 	const { submissionRecordIDsByResponseByFormID } = context;
-	const iaRecordIDs = submissionRecordIDsByResponseByFormID[Forms.IA.id].values().slice(-22);
-//const iaRecordIDs = submissionRecordIDsByResponseByFormID[Forms.IA.id].values();
+//	const iaRecordIDs = submissionRecordIDsByResponseByFormID[Forms.IA.id].values().slice(-22);
+const iaRecordIDs = submissionRecordIDsByResponseByFormID[Forms.IA.id].values();
 	const reviews = [];
 
 	console.log(iaRecordIDs);
