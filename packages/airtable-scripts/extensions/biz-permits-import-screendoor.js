@@ -1,6 +1,7 @@
 {
+
 	// "import" these utilities from the functions at the end of this script
-const { GroupedArray, DefaultMap, getCell, getCellObject, getFieldsByName, getRecordObjects, loopChunks, confirm, clearTable, parseDate, by, timeStart, timeEnd, chain } = utils();
+const { GroupedArray, DefaultMap, getCellObject, getFieldsByName, getRecordObjects, loopChunks, confirm, clearTable, parseDate, by, chain } = utils();
 const { values, entries, fromEntries } = Object;
 
 const Basename = "Cannabis Business Permit";
@@ -152,89 +153,7 @@ const StringFieldTypes = [
 //const ApprovalPattern = /(approved .+ edits|edited the response\.|submitted edits for review\.)/;
 const ApprovalPattern = /(approved .+ edits|edited the response\.)/;
 // TODO: also match `changed the status to **Submitted**`?
-const FieldNameMappings = getNameMappings();
 
-function getSelectFromName(
-	name)
-{
-		// don't convert falsy, non-zero values to a name object; just return null instead, which is a valid option
-	return name || name === 0
-		? { name }
-		: null;
-}
-
-function getDataFromJSON(
-	json,
-	fieldMetadata,
-	overrides = {})
-{
-	const data = typeof json === "string"
-		? JSON.parse(json)
-		: json;
-
-	entries(data).forEach(([key, value]) => {
-		const mappedKey = FieldNameMappings[key];
-
-		if (mappedKey) {
-				// this JSON is using an old Airtable field name, so map it to the new one
-			data[mappedKey] = data[key];
-			delete data[key];
-
-				// use the updated key for the rest of this loop, so that we'll check the remapped value in fieldMetadata
-			key = mappedKey;
-		}
-
-		if (!(key in fieldMetadata)) {
-			console.error(`Unknown key: ${key} ${data.RESPONSE_NUM} ${data.email}`);
-// TODO: this should probably throw to stop the processing instead of skipping a key and losing the data
-
-			return;
-		}
-
-		const { type, choices } = fieldMetadata[key];
-
-			// the JSON is coming in with bare strings for select choices, so fix those.  also check that the selected options
-			// exist in the field, and throw if not.
-		if (type === "singleSelect") {
-			if (value && choices && !choices.includes(value)) {
-				console.error(data);
-				throw new Error(`Unknown option for single-select field "${key}": "${value}"`);
-			}
-
-			data[key] = getSelectFromName(value);
-		} else if (type === "multipleSelects" && value) {
-				// the value for a multipleSelects needs to be in an array, and not all form mappings seem to provide that,
-				// so make sure it's wrapped (but only if it's not null)
-			const valueArray = [].concat(value);
-
-			if (choices && !valueArray.every(name => !name || choices.includes(name))) {
-				const unknownOptions = valueArray.filter((name) => !choices.includes(name));
-
-				console.error(data);
-				throw new Error(`Unknown option for multi-select field "${key}": "${unknownOptions}"`);
-			}
-
-				// make sure that the array of values is unique, since Airtable will complain otherwise
-			data[key] = [...new Set(valueArray)].map((name) => getSelectFromName(name));
-		} else if (type === "multipleRecordLinks") {
-			data[key] = value.map((id) => ({ id }));
-		} else if (StringFieldTypes.includes(type)) {
-				// extra spaces at the beginning or end of some fields can cause issues, so trim them
-			data[key] = value == undefined
-				? ""
-				: String(value).trim();
-		}
-	});
-
-	return {
-		...data,
-		...overrides,
-	};
-}
-
-output.markdown(`Starting at **${new Date().toLocaleString()}**`);
-
-const startTime = Date.now();
 const submissionsTablesByFormID = fromEntries(Forms.info("biz")
 	.map(({ id, name }) => [id, base.getTable(name + " Submissions")]));
 const context = {
@@ -245,41 +164,62 @@ const context = {
   reviewsTable: base.getTable(ReviewsTableName),
   metadataTable: base.getTable(MetadataTableName)
 };
+const startTime = Date.now();
+
+output.markdown(`Starting at **${new Date().toLocaleString()}**`);
+
 const result = await chain(
 	context,
 	[
+//		importMetadataFromJSON,
+//		console.log,
 //		clearExistingRecords,
+//		convertScreendoorDataToAirtableData,
 		groupSubmissionsByFormAndInitialID,
+//		createSubmissions,
 		createReviewData,
 		createReviews,
-		updateSubmissionsWithProjectID
+		updateSubmissionsWithProjectID,
+//		createMetadataRecords,
 	]
 );
 
 console.log(result);
 
-//const jsonFile = await input.fileAsync(
-//	"Choose a .json file containing Screendoor metadata:",
-//	{
-//		allowedFileTypes: [".json", "application/json"],
-//	}
-//);
+output.markdown(`Total time: **${((Date.now() - startTime) / 1000).toFixed(2)}s** at **${new Date().toLocaleString()}**`);
 
 // ====================================================================================================================
 // import metadata from JSON file
 // ====================================================================================================================
 
-	// sort metadata newest to oldest, which is how we want the events to appear in the interface
-//const metadataItems = jsonFile.parsedContents.sort(by("timestamp", true));
-//const approvalMetadataByInitialIDByFormID = new DefaultMap(GroupedArray);
-//
-//for (const item of metadataItems) {
-//	const { responseID, initialID, formID, event } = item;
-//
-//	if (ApprovalPattern.test(event)) {
-//		approvalMetadataByInitialIDByFormID.get(formID).push(initialID ?? responseID, item);
-//	}
-//}
+async function importMetadataFromJSON(
+	context)
+{
+	const jsonFile = await input.fileAsync(
+		"Choose a .json file containing Screendoor metadata:",
+		{
+			allowedFileTypes: [".json", "application/json"],
+		}
+	);
+
+		// sort metadata newest to oldest, which is how we want the events to appear in the interface
+	const metadataItems = jsonFile.parsedContents.sort(by("timestamp", true));
+	const approvalMetadataByInitialIDByFormID = new DefaultMap(GroupedArray);
+
+	for (const item of metadataItems) {
+		const { responseID, initialID, formID, event } = item;
+
+		if (ApprovalPattern.test(event)) {
+			approvalMetadataByInitialIDByFormID.get(formID).push(initialID ?? responseID, item);
+		}
+	}
+
+	return {
+		...context,
+		metadataItems,
+		approvalMetadataByInitialIDByFormID,
+	};
+}
 
 // ====================================================================================================================
 // clear existing records in all tables
@@ -295,94 +235,171 @@ async function clearExistingRecords(
 		return true;
 	}
 
-	// clear all of the submission tables
+// TODO: don't delete records that have RESPONSE_NUM >= 10000, which are test records
+//  add a filter param to clearTable
+		// clear all of the submission tables
 	await Promise.all(submissionsTables.map((table) => clearTable(table)));
 	await clearTable(reviewsTable);
 	await clearTable(metadataTable);
 }
 
-// TODO: don't delete records that have RESPONSE_NUM >= 10000, which are test records
-//  add a filter param to clearTable
-/*
-if (!await confirm("Clear the submissions, reviews, and metadata tables?")) {
-	return;
-}
-
-	// clear all of the submission tables
-await Promise.all(submissionsTables.map((table) => clearTable(table)));
-await clearTable(reviewsTable);
-await clearTable(metadataTable);
-*/
-
 // ====================================================================================================================
-// parse and sort submission JSON
+// convert AIRTABLE_JSON fields to Airtable record data
 // ====================================================================================================================
 
-/*
-const screendoorTable = base.getTable(ScreendoorTableName);
-const screendoorRevTable = base.getTable(ScreendoorRevTableName);
-const airtableDataByInitialIDByFormID = new DefaultMap(GroupedArray);
+async function convertScreendoorDataToAirtableData(
+	context)
+{
+	const { submissionsTableMetadataByFormID } = context;
+	const screendoorTable = base.getTable(ScreendoorTableName);
+	const screendoorRevTable = base.getTable(ScreendoorRevTableName);
+	const airtableDataByInitialIDByFormID = new DefaultMap(GroupedArray);
+	const fieldNameMappings = getNameMappings();
 
-timeStart("Processing Screendoor records");
+	function getSelectFromName(
+		name)
+	{
+			// don't convert falsy, non-zero values to a name object; just return null instead, which is a valid option
+		return name || name === 0
+			? { name }
+			: null;
+	}
 
-(await getRecordObjects(screendoorRevTable, ScreendoorFields))
-		// confusingly, we have to sort the revisions by the SUBMITTED_AT field in the REV table *before* adding in the
-		// unsorted submission records.  this is because the submissions will have a SUBMITTED_AT date from the original
-		// submission time, even though the most recent submission time is more recent (if there are revisions), and we'll
-		// need to get that most recent time from the metadata.  at this point, we don't have a reliable timestamp that
-		// will guarantee the most recent submission will come last if we sort by it, so that's why we just append the
-		// submissions after the sorted revisions.
-	.sort(by("SUBMITTED_AT"))
-	.concat(await getRecordObjects(screendoorTable, ScreendoorFields))
+	function getDataFromJSON(
+		json,
+		fieldMetadata,
+		overrides = {})
+	{
+		const data = typeof json === "string"
+			? JSON.parse(json)
+			: json;
+
+		entries(data).forEach(([key, value]) => {
+			const mappedKey = fieldNameMappings[key];
+
+			if (mappedKey) {
+					// this JSON is using an old Airtable field name, so map it to the new one
+				data[mappedKey] = data[key];
+				delete data[key];
+
+					// use the updated key for the rest of this loop, so that we'll check the remapped value in fieldMetadata
+				key = mappedKey;
+			}
+
+			if (!(key in fieldMetadata)) {
+				console.error(`Unknown key: ${key} ${data.RESPONSE_NUM} ${data.email}`);
+	// TODO: this should probably throw to stop the processing instead of skipping a key and losing the data
+
+				return;
+			}
+
+			const { type, choices } = fieldMetadata[key];
+
+				// the JSON is coming in with bare strings for select choices, so fix those.  also check that the selected options
+				// exist in the field, and throw if not.
+			if (type === "singleSelect") {
+				if (value && choices && !choices.includes(value)) {
+					console.error(data);
+					throw new Error(`Unknown option for single-select field "${key}": "${value}"`);
+				}
+
+				data[key] = getSelectFromName(value);
+			} else if (type === "multipleSelects" && value) {
+					// the value for a multipleSelects needs to be in an array, and not all form mappings seem to provide that,
+					// so make sure it's wrapped (but only if it's not null)
+				const valueArray = [].concat(value);
+
+				if (choices && !valueArray.every(name => !name || choices.includes(name))) {
+					const unknownOptions = valueArray.filter((name) => !choices.includes(name));
+
+					console.error(data);
+					throw new Error(`Unknown option for multi-select field "${key}": "${unknownOptions}"`);
+				}
+
+					// make sure that the array of values is unique, since Airtable will complain otherwise
+				data[key] = [...new Set(valueArray)].map((name) => getSelectFromName(name));
+			} else if (type === "multipleRecordLinks") {
+				data[key] = value.map((id) => ({ id }));
+			} else if (StringFieldTypes.includes(type)) {
+					// extra spaces at the beginning or end of some fields can cause issues, so trim them
+				data[key] = value == undefined
+					? ""
+					: String(value).trim();
+			}
+		});
+
+		return {
+			...data,
+			...overrides,
+		};
+	}
+
+	(await getRecordObjects(screendoorRevTable, ScreendoorFields))
+			// confusingly, we have to sort the revisions by the SUBMITTED_AT field in the REV table *before* adding in the
+			// unsorted submission records.  this is because the submissions will have a SUBMITTED_AT date from the original
+			// submission time, even though the most recent submission time is more recent (if there are revisions), and we'll
+			// need to get that most recent time from the metadata.  at this point, we don't have a reliable timestamp that
+			// will guarantee the most recent submission will come last if we sort by it, so that's why we just append the
+			// submissions after the sorted revisions.
+		.sort(by("SUBMITTED_AT"))
+		.concat(await getRecordObjects(screendoorTable, ScreendoorFields))
 // TODO: probably should error if there is no Airtable JSON
-	.filter(({ AIRTABLE_JSON }) => AIRTABLE_JSON)
-	.forEach(({ RESPONSE_ID, RESPONSE_NUM, RESPONSE_JSON, AIRTABLE_JSON, AIRTABLE_JSON_BO, SCREENDOOR_FORM_ID: formID }) => {
-		const { initial_response_id } = JSON.parse(RESPONSE_JSON);
+		.filter(({ AIRTABLE_JSON }) => AIRTABLE_JSON)
+		.forEach(({
+			RESPONSE_ID,
+			RESPONSE_NUM,
+			RESPONSE_JSON,
+			AIRTABLE_JSON,
+			AIRTABLE_JSON_BO,
+			SCREENDOOR_FORM_ID: formID
+		}) => {
+			const { initial_response_id } = JSON.parse(RESPONSE_JSON);
+
 // TODO: RESPONSE_ID from the Airtable record should be the same as initial_response_id?
 //  in that case, don't need to parse RESPONSE_JSON at all, which would save time
-		const overrides = {
-				// this key is in the Airtable JSON, but for the revisions, it's not the ID of the original submission; it's some
-				// other, unrelated ID.  but we need the original response ID to link the revisions to the originals.  so overwrite
-				// the RESPONSE_ID field in the Airtable data with the one from Screendoor.  the revisions also won't have the
-				// sequential_id in the JSON, so take it from the RESPONSE_NUM field in the record and make sure it's a string,
-				// since that's what submission tables expect.
-			RESPONSE_ID,
-			RESPONSE_NUM: String(RESPONSE_NUM),
-				// we want to give current submissions a blank SUBMISSION_ID, but a 0 to revisions.  this makes
-				// it possible to distinguish them when generating Form.io records.
-			SUBMISSION_ID: typeof initial_response_id !== "undefined" ? "" : "0",
-// TODO: override this value because the table currently points at the initial submission table, but the record ID
-//  might actually come from the _REV table
-//SCREENDOOR_BUSINESS_PERMIT: null,
-		};
-		const data = getDataFromJSON(AIRTABLE_JSON, submissionsTableMetadataByFormID[formID], overrides);
-		const initialID = initial_response_id ?? RESPONSE_ID;
+(initial_response_id && initial_response_id != RESPONSE_ID) && console.error("initial and response IDs don't match", initial_response_id, RESPONSE_ID);
 
-delete data.SCREENDOOR_BUSINESS_PERMIT;
+			const initialID = initial_response_id ?? RESPONSE_ID;
+			const overrides = {
+					// this key is in the Airtable JSON, but for the revisions, it's not the ID of the original submission; it's some
+					// other, unrelated ID.  but we need the original response ID to link the revisions to the originals.  so overwrite
+					// the RESPONSE_ID field in the Airtable data with the one from Screendoor.  the revisions also won't have the
+					// sequential_id in the JSON, so take it from the RESPONSE_NUM field in the record and make sure it's a string,
+					// since that's what submission tables expect.
+				RESPONSE_ID,
+				RESPONSE_NUM: String(RESPONSE_NUM),
+					// we want to give current submissions a blank SUBMISSION_ID, but a 0 to revisions.  this makes
+					// it possible to distinguish them when generating Form.io records.
+				SUBMISSION_ID: typeof initial_response_id !== "undefined" ? "" : "0",
+			};
+			const data = getDataFromJSON(AIRTABLE_JSON, submissionsTableMetadataByFormID[formID], overrides);
 
-		airtableDataByInitialIDByFormID.get(formID).push(initialID, data);
+				// some tables have this field, and some don't, but none of them seem to need it, so just delete it so that
+				// it doesn't cause any errors
+			delete data.SCREENDOOR_BUSINESS_PERMIT;
 
-		if (AIRTABLE_JSON_BO) {
-				// 5804 records return the Initial Application data in the AIRTABLE_JSON field and have another JSON field
-				// for the data that was separated out into the Business Ownership form
-			const boFormID = Forms.BO.id;
-			const metadata = submissionsTableMetadataByFormID[boFormID];
-			const data = getDataFromJSON(AIRTABLE_JSON_BO, metadata, overrides);
+			airtableDataByInitialIDByFormID.get(formID).push(initialID, data);
 
-			airtableDataByInitialIDByFormID.get(boFormID).push(initialID, data);
-		}
-	});
+			if (AIRTABLE_JSON_BO) {
+					// 5804 records return the Initial Application data in the AIRTABLE_JSON field and have another JSON field
+					// for the data that was separated out into the Business Ownership form
+				const boFormID = Forms.BO.id;
+				const metadata = submissionsTableMetadataByFormID[boFormID];
+				const data = getDataFromJSON(AIRTABLE_JSON_BO, metadata, overrides);
 
-timeEnd("Processing Screendoor records");
-
-
+				airtableDataByInitialIDByFormID.get(boFormID).push(initialID, data);
+			}
+		});
 console.log(airtableDataByInitialIDByFormID.getAll());
-console.log(approvalMetadataByInitialIDByFormID.getAll());
-*/
 
+	return {
+		...context,
+		airtableDataByInitialIDByFormID,
+	};
+}
 
 // ====================================================================================================================
-// create Initial Application submissions
+// group submissisons by form
 // ====================================================================================================================
 
 async function groupSubmissionsByFormAndInitialID(
@@ -411,106 +428,88 @@ async function groupSubmissionsByFormAndInitialID(
 	context.submissionRecordIDsByResponseByFormID = submissionRecordIDsByResponseByFormID;
 }
 
-//const submissionRecordIDsByResponseByFormID = {};
-//
-//{
-//	const { ID, ProjectID } = SubmissionFields;
-//
-//	for (const table of submissionsTables) {
-//			// the IA table doesn't currently have the InitialID field, so start with the other fields and then add InitialID
-//			// if it's in the table, since Airtable throws if you try to get a field that doesn't exist.  ffs.
-//		const fields = [ID, ProjectID]
-//			.concat(table.fields.some(({ name }) => name === InitialID) ? InitialID : []);
-//		const records = (await getRecordObjects(table, fields))
-//			.filter(({ RESPONSE_ID }) => RESPONSE_ID);
-//		const formName = table.name.replace(" Submissions", "");
-//		const recordIDsByResponse = new GroupedArray();
-//
-//		records.forEach((record) => {
-//			recordIDsByResponse.push(record[InitialID] || record[ID], { id: record._id });
-//		});
-//		submissionRecordIDsByResponseByFormID[Forms[formName].id] = recordIDsByResponse;
-//	}
-//}
+// ====================================================================================================================
+// create Initial Application submissions
+// ====================================================================================================================
 
-/*
+async function createSubmissions(
+	context)
+{
+	const {
+		airtableDataByInitialIDByFormID,
+		approvalMetadataByInitialIDByFormID,
+	} = context;
+	const submissionRecordIDsByResponseByFormID = {};
 
-//for (const [formID, airtableDataByInitialID] of [[Forms.IA.id, airtableDataByInitialIDByFormID.get(Forms.IA.id)]]) {
-//for (const [formID, airtableDataByInitialID] of [[Forms.Del.id, airtableDataByInitialIDByFormID.get(Forms.Del.id)]]) {
-for (const [formID, airtableDataByInitialID] of airtableDataByInitialIDByFormID.entries()) {
-		// the IA and BO forms share the same metadata, but it's been stored under 5804.  so use that form ID to look up
-		// the metadata in the special BO case.
-	const metadataFormID = formID === Forms.BO.id ? Forms.IA.id : formID;
-	const approvalMetadataByInitialID = approvalMetadataByInitialIDByFormID.get(metadataFormID);
-	const submissions = [];
+	for (const [formID, airtableDataByInitialID] of airtableDataByInitialIDByFormID.entries()) {
+			// the IA and BO forms share the same metadata, but it's been stored under 5804.  so use that form ID to look up
+			// the metadata in the special BO case.
+		const metadataFormID = formID === Forms.BO.id ? Forms.IA.id : formID;
+		const approvalMetadataByInitialID = approvalMetadataByInitialIDByFormID.get(metadataFormID);
+		const submissions = [];
 // TODO: solve The Case of the Missing Metadata
 const missingMetadata = [];
 console.log("form", formID, "approvalMetadataByInitialID", approvalMetadataByInitialID);
 
-	airtableDataByInitialID.forEach((initialID, items) => {
+		airtableDataByInitialID.forEach((initialID, items) => {
 //// TODO: remove this
 //if ((formID === Forms.IA.id || formID === Forms.BO.id) && items[0].RESPONSE_NUM < 1120) {
 //	return;
 //}
-		const [firstSubmission, ...rest] = items;
+			const [firstSubmission, ...rest] = items;
 
-		submissions.push({ fields: firstSubmission });
+			submissions.push({ fields: firstSubmission });
 
-		if (rest.length) {
-			if (!approvalMetadataByInitialID.has(initialID)) {
+			if (rest.length) {
+				if (!approvalMetadataByInitialID.has(initialID)) {
 //				console.log(`No approval metadata for response ${initialID} in form ${formID}.`, firstSubmission, rest);
 missingMetadata.push([formID, initialID, firstSubmission, rest]);
 //return;
 //				throw new Error(`No metadata for response ${initialID} in form ${formID}.`);
-			} else {
+				} else {
+					const newestSubmittedDate = approvalMetadataByInitialID.get(initialID)[0];
 
-			const newestSubmittedDate = approvalMetadataByInitialID.get(initialID)[0];
+						// when there are revisions, the submission date of the "current" submission is not included in the JSON, so we
+						// have to pull it from the metadata.  the most recent metadata date is when the current submission was approved.
+					rest.at(-1).Submitted = newestSubmittedDate.timestamp;
+				}
 
-				// when there are revisions, the submission date of the "current" submission is not included in the JSON, so we
-				// have to pull it from the metadata.  the most recent metadata date is when the current submission was approved.
-			rest.at(-1).Submitted = newestSubmittedDate.timestamp;
+					// store each of the submissions on a fields key so it's ready to be used to create a new record
+				submissions.push(...(rest.map((fields) => ({ fields }))));
 			}
+		});
 
-				// store each of the submissions on a fields key so it's ready to be used to create a new record
-			submissions.push(...(rest.map((fields) => ({ fields }))));
-		}
-	});
+			// we now need to sort the submissions in descending order so that the first record in each GroupedArray value will
+			// be the most recent submission when we store it in the loopChunks() below.  that way, it'll be the latestID that we
+			// use to get the latest submission when creating the review record in the for loop below.  we have to dig into the
+			// fields to get the date, and then call parseDate(), because the format isn't quite parseable with new Date().
+		submissions.sort(by(({ fields: { Submitted } }) => Submitted, true));
 
-		// we now need to sort the submissions in descending order so that the first record in each GroupedArray value will
-		// be the most recent submission when we store it in the loopChunks() below.  that way, it'll be the latestID that we
-		// use to get the latest submission when creating the review record in the for loop below.  we have to dig into the
-		// fields to get the date, and then call parseDate(), because the format isn't quite parseable with new Date().
-	submissions.sort(by(({ fields: { Submitted } }) => Submitted, true));
+		const recordIDsByResponse = new GroupedArray();
+		const submissionsTable = submissionsTablesByFormID[formID];
 
-	const recordIDsByResponse = new GroupedArray();
-	const submissionsTable = submissionsTablesByFormID[formID];
-
-	output.markdown(`Starting import of **${submissions.length}** submissions for **${Forms[formID].name}**...`);
+		output.markdown(`Starting import of **${submissions.length}** submissions for **${Forms[formID].name}**...`);
 
 missingMetadata.length && console.error(`missingMetadata: ${missingMetadata.length}, total: ${airtableDataByInitialID.keys().length}`, missingMetadata);
 
 console.log(formID, submissions);
 //console.log(submissions.map(({ fields: { dateYouContactedOfficeOfCannabis } }, i) => [i, dateYouContactedOfficeOfCannabis, typeof dateYouContactedOfficeOfCannabis]).join("\n"));
 
-	await loopChunks(submissions, async (chunk) => {
-		const records = await submissionsTable.createRecordsAsync(chunk);
+		await loopChunks(submissions, async (chunk) => {
+			const records = await submissionsTable.createRecordsAsync(chunk);
 
-		chunk.forEach((submission, i) => {
-// TODO: we need to get the initial response ID from the submission here instead of RESPONSE_ID, because they're not the same
-			const { fields: { [InitialID]: initialID } } = submission;
+			chunk.forEach((submission, i) => {
+				const { fields: { [InitialID]: initialID } } = submission;
 
-			recordIDsByResponse.push(initialID, { id: records[i] });
-//			const { fields: { [SubmissionFields.ID]: responseID } } = submission;
-//
-//			recordIDsByResponse.push(responseID, { id: records[i] });
+				recordIDsByResponse.push(initialID, { id: records[i] });
+			});
 		});
-	});
 
-	submissionRecordIDsByResponseByFormID[formID] = recordIDsByResponse;
+		submissionRecordIDsByResponseByFormID[formID] = recordIDsByResponse;
+	}
+
+	context.submissionRecordIDsByResponseByFormID = submissionRecordIDsByResponseByFormID;
 }
-*/
-
-//console.log(submissionRecordIDsByResponseByFormID);
 
 // ====================================================================================================================
 // create reviews from Initial Application submissions
@@ -586,69 +585,6 @@ async function createReviewData(
 	context.reviews = reviews;
 }
 
-//const iaRecordIDs = submissionRecordIDsByResponseByFormID[Forms.IA.id].values().slice(-22);
-////const iaRecordIDs = submissionRecordIDsByResponseByFormID[Forms.IA.id].values();
-//const reviews = [];
-//
-//console.log(iaRecordIDs);
-//
-//output.markdown(`Creating ${iaRecordIDs.length} reviews...`);
-//
-//function normalizeLink(
-//	record)
-//{
-//		// linked records need to be wrapped in an array, unless the list is empty/null
-//	if (Array.isArray(record)) {
-//		return record.length ? record : null;
-//	} else {
-//		return record ? [record] : null;
-//	}
-//}
-//
-//	// create a review for each of the Initial Application submissions
-//for (const [latestRecordID, ...previousRecordIDs] of iaRecordIDs) {
-////for (const [latestRecordID, ...previousRecordIDs] of submissionRecordIDsByResponseByFormID.values()) {
-//	const submissionsTable = submissionsTablesByFormID[Forms.IA.id];
-//		// get the created record for the most recent submission, so we can get any fields set by formulas
-//		// that we need to use when generating the review data below
-//	const latestRecord = await submissionsTable.selectRecordAsync(latestRecordID.id);
-//	const latest = getCellObject(latestRecord, values(SubmissionFields));
-//	const responseID = latest[SubmissionFields.ID];
-//// TODO: this will link only one of the three GO submission forms
-//		// link to all of the part 2 submissions related to this review
-//	const linkFields = Forms.info("part2")
-//		.reduce((result, { name, id }) => {
-//				// if we got no submissions at all for a form, this could be undefined
-//			const [latest, ...previous] = submissionRecordIDsByResponseByFormID[id]?.get(responseID) || [];
-//
-//			result[`${name} - Latest Submission`] = normalizeLink(latest);
-//			result[`${name} - Previous Submissions`] = normalizeLink(previous);
-//
-//			return result;
-//		}, {});
-//	let originalSubmittedDate = latest[SubmissionFields.Submitted];
-//
-//	if (previousRecordIDs.length) {
-//			// with more than one record, the original submission date is from the oldest record, which is last in this array
-//		const oldestRecord = await submissionsTable.selectRecordAsync(previousRecordIDs.at(-1).id);
-//		const oldest = getCellObject(oldestRecord, values(SubmissionFields));
-//
-//		originalSubmittedDate = oldest[SubmissionFields.Submitted];
-//	}
-//
-//	reviews.push({
-//		fields: {
-//			[ReviewFields.SubmissionID]: latest[SubmissionFields.SubmissionID],
-//			[ReviewFields.InitialID]: responseID,
-//			[ReviewFields.ResponseNum]: latest[SubmissionFields.Num],
-//			[ReviewFields.OriginalDate]: parseDate(originalSubmittedDate).toISOString(),
-//			[ReviewFields.MostRecent]: normalizeLink(latestRecordID),
-//			[ReviewFields.Previous]: normalizeLink(previousRecordIDs),
-//			...linkFields,
-//		}
-//	});
-//}
-
 // ====================================================================================================================
 // create review records
 // ====================================================================================================================
@@ -671,18 +607,6 @@ async function createReviews(
 
 	context.reviewRecordsByInitialID = reviewRecordsByInitialID;
 }
-
-//const reviewRecordsByInitialID = {};
-//
-//await loopChunks(reviews, async (chunk) => {
-//	const records = await reviewsTable.createRecordsAsync(chunk);
-//
-//	chunk.forEach((review, i) => {
-//		const { fields: { [ReviewFields.InitialID]: initialID } } = review;
-//
-//		reviewRecordsByInitialID[initialID] = { id: records[i] };
-//	});
-//});
 
 // ====================================================================================================================
 // update submissions with associated Project ID
@@ -718,71 +642,50 @@ async function updateSubmissionsWithProjectID(
 	}
 }
 
-//for (const [formID, submissionRecordIDsByResponse] of entries(submissionRecordIDsByResponseByFormID)) {
-//	const updatedSubmissions = [];
-//
-//	for (const [initialID, reviewRecordID] of entries(reviewRecordsByInitialID)) {
-//		const record = await reviewsTable.selectRecordAsync(reviewRecordID.id);
-//		const projectID = record.getCellValue("Project ID");
-//		const fields = {
-//				// the Project ID on the review is a number, but the PROJECT_ID field on the submissions is a string.  ffs.
-//			[SubmissionFields.ProjectID]: String(projectID)
-//		};
-//		const submissionRecords = submissionRecordIDsByResponse.get(initialID);
-//
-//		if (submissionRecords) {
-//			submissionRecords.forEach(({ id }) => updatedSubmissions.push({ id, fields }));
-//		}
-//	}
-//
-//	if (updatedSubmissions.length) {
-//		output.markdown(`Updating "${Forms[formID].name}" submissions with Project IDs...`);
-//
-//		await loopChunks(updatedSubmissions, async (chunk) => submissionsTablesByFormID[formID].updateRecordsAsync(chunk));
-//	}
-//}
-
 // ====================================================================================================================
 // create metadata items associated with the reviews we created above
 // ====================================================================================================================
 
-/*
+async function createMetadataRecords(
+	context)
+{
+	const { metadataTable, metadataItems, reviewRecordsByInitialID } = context;
 	const metadataRecords = [];
-const skippedNumbers = new Set();
+	const skippedNumbers = new Set();
 
-console.log(reviewRecordsByInitialID);
+//console.log(reviewRecordsByInitialID);
 
-for (const item of metadataItems) {
-	const initialID = item.initialID ?? item.responseID;
-	const reviewRecord = reviewRecordsByInitialID[initialID];
+	for (const item of metadataItems) {
+		const initialID = item.initialID ?? item.responseID;
+		const reviewRecord = reviewRecordsByInitialID[initialID];
 
-	if (reviewRecord) {
-		const fields = MetadataTableFields.reduce((result, { name, key }) => ({
-			...result,
-			[name]: key
-				? item[key]
-					// the linked record field has an empty key value, since it doesn't exist in the JSON,
-					// and must be wrapped in an array
-				: [reviewRecord]
-		}), {});
+		if (reviewRecord) {
+			const fields = MetadataTableFields.reduce((result, { name, key }) => ({
+				...result,
+				[name]: key
+					? item[key]
+						// the linked record field has an empty key value, since it doesn't exist in the JSON,
+						// and must be wrapped in an array
+					: [reviewRecord]
+			}), {});
 
-			// this field is expecting a string, so convert the number
-		fields["Response Number"] = String(fields["Response Number"]);
-		fields["Response ID"] = initialID;
+				// this field is expecting a string, so convert the number
+			fields["Response Number"] = String(fields["Response Number"]);
+			fields["Response ID"] = initialID;
 
 // TODO: fix missing form or filter these
-		if (Forms[item.formID]) {
-			fields["Form"] = { name: Forms[item.formID].name };
-		} else {
-			console.error(`Bad form: ${item.formID} in ${initialID}`);
-		}
+			if (Forms[item.formID]) {
+				fields["Form"] = { name: Forms[item.formID].name };
+			} else {
+				console.error(`Bad form: ${item.formID} in ${initialID}`);
+			}
 
-//		fields["Form"] = { name: Forms[item.formID].name };
-		metadataRecords.push({ fields });
-	} else {
-		skippedNumbers.add(initialID);
+	//		fields["Form"] = { name: Forms[item.formID].name };
+			metadataRecords.push({ fields });
+		} else {
+			skippedNumbers.add(initialID);
+		}
 	}
-}
 
 // TODO: too many skipped at the moment
 //if (skippedNumbers.size > 0) {
@@ -791,12 +694,11 @@ for (const item of metadataItems) {
 
 console.log(metadataRecords);
 
-output.markdown(`Starting metadata import...`);
+	output.markdown(`Starting metadata import...`);
 
-await loopChunks(metadataRecords, (chunk) => metadataTable.createRecordsAsync(chunk));
-*/
+	await loopChunks(metadataRecords, (chunk) => metadataTable.createRecordsAsync(chunk));
+}
 
-output.markdown(`Total time: **${((Date.now() - startTime) / 1000).toFixed(2)}s** at **${new Date().toLocaleString()}**`);
 }
 
 // ====================================================================================================================
@@ -1110,13 +1012,13 @@ function utils() {
 		const times = {};
 
 		function timeStart(
-			name)
+			name = "timer")
 		{
 			times[name] = Date.now();
 		}
 
 		function timeEnd(
-			name)
+			name = "timer")
 		{
 			const startTime = times[name];
 
