@@ -1,6 +1,6 @@
 {
 	// "import" these utilities from the functions at the end of this script
-const { GroupedArray, DefaultMap, getCell, getCellObject, getFieldsByName, getRecordObjects, loopChunks, confirm, clearTable, parseDate, by, timeStart, timeEnd } = utils();
+const { GroupedArray, DefaultMap, getCell, getCellObject, getFieldsByName, getRecordObjects, loopChunks, confirm, clearTable, parseDate, by, timeStart, timeEnd, chain } = utils();
 const { values, entries, fromEntries } = Object;
 
 const Basename = "Cannabis Business Permit";
@@ -234,6 +234,30 @@ function getDataFromJSON(
 
 output.markdown(`Starting at **${new Date().toLocaleString()}**`);
 
+const startTime = Date.now();
+const submissionsTablesByFormID = fromEntries(Forms.info("biz")
+	.map(({ id, name }) => [id, base.getTable(name + " Submissions")]));
+const context = {
+  submissionsTablesByFormID,
+  submissionsTableMetadataByFormID: fromEntries(entries(submissionsTablesByFormID)
+		.map(([formID, table]) => [formID, getFieldsByName(table)])),
+  submissionsTables: [...new Set(values(submissionsTablesByFormID))],
+  reviewsTable: base.getTable(ReviewsTableName),
+  metadataTable: base.getTable(MetadataTableName)
+};
+const result = await chain(
+	context,
+	[
+//		clearExistingRecords,
+		groupSubmissionsByFormAndInitialID,
+		createReviewData,
+		createReviews,
+		updateSubmissionsWithProjectID
+	]
+);
+
+console.log(result);
+
 //const jsonFile = await input.fileAsync(
 //	"Choose a .json file containing Screendoor metadata:",
 //	{
@@ -244,8 +268,6 @@ output.markdown(`Starting at **${new Date().toLocaleString()}**`);
 // ====================================================================================================================
 // import metadata from JSON file
 // ====================================================================================================================
-
-const startTime = Date.now();
 
 	// sort metadata newest to oldest, which is how we want the events to appear in the interface
 //const metadataItems = jsonFile.parsedContents.sort(by("timestamp", true));
@@ -259,20 +281,25 @@ const startTime = Date.now();
 //	}
 //}
 
-const submissionsTablesByFormID = fromEntries(Forms.info("biz")
-	.map(({ id, name }) => [id, base.getTable(name + " Submissions")]));
-// TODO: this is maybe confusing with Screendoor metadata.  this is table field metadata.
-const submissionsTableMetadataByFormID = fromEntries(entries(submissionsTablesByFormID)
-	.map(([formID, table]) => [formID, getFieldsByName(table)]));
-
-	// create an array of the submissions tables with no duplicates, since multiple forms can map to one table
-const submissionsTables = [...new Set(values(submissionsTablesByFormID))];
-const reviewsTable = base.getTable(ReviewsTableName);
-const metadataTable = base.getTable(MetadataTableName);
-
 // ====================================================================================================================
 // clear existing records in all tables
 // ====================================================================================================================
+
+async function clearExistingRecords(
+	context)
+{
+	const { submissionsTables, reviewsTable, metadataTable } = context;
+
+	if (!await confirm("Clear the submissions, reviews, and metadata tables?")) {
+			// return true to stop the chain
+		return true;
+	}
+
+	// clear all of the submission tables
+	await Promise.all(submissionsTables.map((table) => clearTable(table)));
+	await clearTable(reviewsTable);
+	await clearTable(metadataTable);
+}
 
 // TODO: don't delete records that have RESPONSE_NUM >= 10000, which are test records
 //  add a filter param to clearTable
@@ -358,10 +385,12 @@ console.log(approvalMetadataByInitialIDByFormID.getAll());
 // create Initial Application submissions
 // ====================================================================================================================
 
-const submissionRecordIDsByResponseByFormID = {};
-
+async function groupSubmissionsByFormAndInitialID(
+	context)
 {
+	const { submissionsTables } = context;
 	const { ID, ProjectID } = SubmissionFields;
+	const submissionRecordIDsByResponseByFormID = {};
 
 	for (const table of submissionsTables) {
 			// the IA table doesn't currently have the InitialID field, so start with the other fields and then add InitialID
@@ -378,7 +407,31 @@ const submissionRecordIDsByResponseByFormID = {};
 		});
 		submissionRecordIDsByResponseByFormID[Forms[formName].id] = recordIDsByResponse;
 	}
+
+	context.submissionRecordIDsByResponseByFormID = submissionRecordIDsByResponseByFormID;
 }
+
+//const submissionRecordIDsByResponseByFormID = {};
+//
+//{
+//	const { ID, ProjectID } = SubmissionFields;
+//
+//	for (const table of submissionsTables) {
+//			// the IA table doesn't currently have the InitialID field, so start with the other fields and then add InitialID
+//			// if it's in the table, since Airtable throws if you try to get a field that doesn't exist.  ffs.
+//		const fields = [ID, ProjectID]
+//			.concat(table.fields.some(({ name }) => name === InitialID) ? InitialID : []);
+//		const records = (await getRecordObjects(table, fields))
+//			.filter(({ RESPONSE_ID }) => RESPONSE_ID);
+//		const formName = table.name.replace(" Submissions", "");
+//		const recordIDsByResponse = new GroupedArray();
+//
+//		records.forEach((record) => {
+//			recordIDsByResponse.push(record[InitialID] || record[ID], { id: record._id });
+//		});
+//		submissionRecordIDsByResponseByFormID[Forms[formName].id] = recordIDsByResponse;
+//	}
+//}
 
 /*
 
@@ -457,119 +510,237 @@ console.log(formID, submissions);
 }
 */
 
-console.log(submissionRecordIDsByResponseByFormID);
+//console.log(submissionRecordIDsByResponseByFormID);
 
 // ====================================================================================================================
 // create reviews from Initial Application submissions
 // ====================================================================================================================
 
 // TODO: for some reason, when we create the reviews in the loop above, iaRecordIDs is just one item with all the records in an inner array
-const iaRecordIDs = submissionRecordIDsByResponseByFormID[Forms.IA.id].values().slice(-22);
-//const iaRecordIDs = submissionRecordIDsByResponseByFormID[Forms.IA.id].values();
-const reviews = [];
-
-console.log(iaRecordIDs);
-
-output.markdown(`Creating ${iaRecordIDs.length} reviews...`);
-
-function normalizeLink(
-	record)
+async function createReviewData(
+	context)
 {
+	const { submissionRecordIDsByResponseByFormID } = context;
+	const iaRecordIDs = submissionRecordIDsByResponseByFormID[Forms.IA.id].values().slice(-22);
+//const iaRecordIDs = submissionRecordIDsByResponseByFormID[Forms.IA.id].values();
+	const reviews = [];
+
+	console.log(iaRecordIDs);
+
+	output.markdown(`Creating ${iaRecordIDs.length} reviews...`);
+
+	function normalizeLink(
+		record)
+	{
 		// linked records need to be wrapped in an array, unless the list is empty/null
-	if (Array.isArray(record)) {
-		return record.length ? record : null;
-	} else {
-		return record ? [record] : null;
-	}
-}
-
-	// create a review for each of the Initial Application submissions
-for (const [latestRecordID, ...previousRecordIDs] of iaRecordIDs) {
-//for (const [latestRecordID, ...previousRecordIDs] of submissionRecordIDsByResponseByFormID.values()) {
-	const submissionsTable = submissionsTablesByFormID[Forms.IA.id];
-		// get the created record for the most recent submission, so we can get any fields set by formulas
-		// that we need to use when generating the review data below
-	const latestRecord = await submissionsTable.selectRecordAsync(latestRecordID.id);
-	const latest = getCellObject(latestRecord, values(SubmissionFields));
-	const responseID = latest[SubmissionFields.ID];
-// TODO: this will link only one of the three GO submission forms
-		// link to all of the part 2 submissions related to this review
-	const linkFields = Forms.info("part2")
-		.reduce((result, { name, id }) => {
-				// if we got no submissions at all for a form, this could be undefined
-			const [latest, ...previous] = submissionRecordIDsByResponseByFormID[id]?.get(responseID) || [];
-
-			result[`${name} - Latest Submission`] = normalizeLink(latest);
-			result[`${name} - Previous Submissions`] = normalizeLink(previous);
-
-			return result;
-		}, {});
-	let originalSubmittedDate = latest[SubmissionFields.Submitted];
-
-	if (previousRecordIDs.length) {
-			// with more than one record, the original submission date is from the oldest record, which is last in this array
-		const oldestRecord = await submissionsTable.selectRecordAsync(previousRecordIDs.at(-1).id);
-		const oldest = getCellObject(oldestRecord, values(SubmissionFields));
-
-		originalSubmittedDate = oldest[SubmissionFields.Submitted];
-	}
-
-	reviews.push({
-		fields: {
-			[ReviewFields.SubmissionID]: latest[SubmissionFields.SubmissionID],
-			[ReviewFields.InitialID]: responseID,
-			[ReviewFields.ResponseNum]: latest[SubmissionFields.Num],
-			[ReviewFields.OriginalDate]: parseDate(originalSubmittedDate).toISOString(),
-			[ReviewFields.MostRecent]: normalizeLink(latestRecordID),
-			[ReviewFields.Previous]: normalizeLink(previousRecordIDs),
-			...linkFields,
+		if (Array.isArray(record)) {
+			return record.length ? record : null;
+		} else {
+			return record ? [record] : null;
 		}
-	});
+	}
+
+		// create a review for each of the Initial Application submissions
+	for (const [latestRecordID, ...previousRecordIDs] of iaRecordIDs) {
+		const submissionsTable = submissionsTablesByFormID[Forms.IA.id];
+			// get the created record for the most recent submission, so we can get any fields set by formulas
+			// that we need to use when generating the review data below
+		const latestRecord = await submissionsTable.selectRecordAsync(latestRecordID.id);
+		const latest = getCellObject(latestRecord, values(SubmissionFields));
+		const responseID = latest[SubmissionFields.ID];
+// TODO: this will link only one of the three GO submission forms
+			// link to all of the part 2 submissions related to this review
+		const linkFields = Forms.info("part2")
+			.reduce((result, { name, id }) => {
+					// if we got no submissions at all for a form, this could be undefined
+				const [latest, ...previous] = submissionRecordIDsByResponseByFormID[id]?.get(responseID) || [];
+
+				result[`${name} - Latest Submission`] = normalizeLink(latest);
+				result[`${name} - Previous Submissions`] = normalizeLink(previous);
+
+				return result;
+			}, {});
+		let originalSubmittedDate = latest[SubmissionFields.Submitted];
+
+		if (previousRecordIDs.length) {
+				// with more than one record, the original submission date is from the oldest record, which is last in this array
+			const oldestRecord = await submissionsTable.selectRecordAsync(previousRecordIDs.at(-1).id);
+			const oldest = getCellObject(oldestRecord, values(SubmissionFields));
+
+			originalSubmittedDate = oldest[SubmissionFields.Submitted];
+		}
+
+		reviews.push({
+			fields: {
+				[ReviewFields.SubmissionID]: latest[SubmissionFields.SubmissionID],
+				[ReviewFields.InitialID]: responseID,
+				[ReviewFields.ResponseNum]: latest[SubmissionFields.Num],
+				[ReviewFields.OriginalDate]: parseDate(originalSubmittedDate).toISOString(),
+				[ReviewFields.MostRecent]: normalizeLink(latestRecordID),
+				[ReviewFields.Previous]: normalizeLink(previousRecordIDs),
+				...linkFields,
+			}
+		});
+	}
+
+	context.reviews = reviews;
 }
+
+//const iaRecordIDs = submissionRecordIDsByResponseByFormID[Forms.IA.id].values().slice(-22);
+////const iaRecordIDs = submissionRecordIDsByResponseByFormID[Forms.IA.id].values();
+//const reviews = [];
+//
+//console.log(iaRecordIDs);
+//
+//output.markdown(`Creating ${iaRecordIDs.length} reviews...`);
+//
+//function normalizeLink(
+//	record)
+//{
+//		// linked records need to be wrapped in an array, unless the list is empty/null
+//	if (Array.isArray(record)) {
+//		return record.length ? record : null;
+//	} else {
+//		return record ? [record] : null;
+//	}
+//}
+//
+//	// create a review for each of the Initial Application submissions
+//for (const [latestRecordID, ...previousRecordIDs] of iaRecordIDs) {
+////for (const [latestRecordID, ...previousRecordIDs] of submissionRecordIDsByResponseByFormID.values()) {
+//	const submissionsTable = submissionsTablesByFormID[Forms.IA.id];
+//		// get the created record for the most recent submission, so we can get any fields set by formulas
+//		// that we need to use when generating the review data below
+//	const latestRecord = await submissionsTable.selectRecordAsync(latestRecordID.id);
+//	const latest = getCellObject(latestRecord, values(SubmissionFields));
+//	const responseID = latest[SubmissionFields.ID];
+//// TODO: this will link only one of the three GO submission forms
+//		// link to all of the part 2 submissions related to this review
+//	const linkFields = Forms.info("part2")
+//		.reduce((result, { name, id }) => {
+//				// if we got no submissions at all for a form, this could be undefined
+//			const [latest, ...previous] = submissionRecordIDsByResponseByFormID[id]?.get(responseID) || [];
+//
+//			result[`${name} - Latest Submission`] = normalizeLink(latest);
+//			result[`${name} - Previous Submissions`] = normalizeLink(previous);
+//
+//			return result;
+//		}, {});
+//	let originalSubmittedDate = latest[SubmissionFields.Submitted];
+//
+//	if (previousRecordIDs.length) {
+//			// with more than one record, the original submission date is from the oldest record, which is last in this array
+//		const oldestRecord = await submissionsTable.selectRecordAsync(previousRecordIDs.at(-1).id);
+//		const oldest = getCellObject(oldestRecord, values(SubmissionFields));
+//
+//		originalSubmittedDate = oldest[SubmissionFields.Submitted];
+//	}
+//
+//	reviews.push({
+//		fields: {
+//			[ReviewFields.SubmissionID]: latest[SubmissionFields.SubmissionID],
+//			[ReviewFields.InitialID]: responseID,
+//			[ReviewFields.ResponseNum]: latest[SubmissionFields.Num],
+//			[ReviewFields.OriginalDate]: parseDate(originalSubmittedDate).toISOString(),
+//			[ReviewFields.MostRecent]: normalizeLink(latestRecordID),
+//			[ReviewFields.Previous]: normalizeLink(previousRecordIDs),
+//			...linkFields,
+//		}
+//	});
+//}
 
 // ====================================================================================================================
 // create review records
 // ====================================================================================================================
 
-const reviewRecordsByInitialID = {};
+async function createReviews(
+	context)
+{
+	const { reviews, reviewsTable } = context;
+	const reviewRecordsByInitialID = {};
 
-await loopChunks(reviews, async (chunk) => {
-	const records = await reviewsTable.createRecordsAsync(chunk);
+	await loopChunks(reviews, async (chunk) => {
+		const records = await reviewsTable.createRecordsAsync(chunk);
 
-	chunk.forEach((review, i) => {
-		const { fields: { [ReviewFields.InitialID]: initialID } } = review;
+		chunk.forEach((review, i) => {
+			const { fields: { [ReviewFields.InitialID]: initialID } } = review;
 
-		reviewRecordsByInitialID[initialID] = { id: records[i] };
+			reviewRecordsByInitialID[initialID] = { id: records[i] };
+		});
 	});
-});
+
+	context.reviewRecordsByInitialID = reviewRecordsByInitialID;
+}
+
+//const reviewRecordsByInitialID = {};
+//
+//await loopChunks(reviews, async (chunk) => {
+//	const records = await reviewsTable.createRecordsAsync(chunk);
+//
+//	chunk.forEach((review, i) => {
+//		const { fields: { [ReviewFields.InitialID]: initialID } } = review;
+//
+//		reviewRecordsByInitialID[initialID] = { id: records[i] };
+//	});
+//});
 
 // ====================================================================================================================
 // update submissions with associated Project ID
 // ====================================================================================================================
 
-for (const [formID, submissionRecordIDsByResponse] of entries(submissionRecordIDsByResponseByFormID)) {
-	const updatedSubmissions = [];
+async function updateSubmissionsWithProjectID(
+	context)
+{
+	const { reviewsTable, submissionRecordIDsByResponseByFormID, reviewRecordsByInitialID } = context;
 
-	for (const [initialID, reviewRecordID] of entries(reviewRecordsByInitialID)) {
-		const record = await reviewsTable.selectRecordAsync(reviewRecordID.id);
-		const projectID = record.getCellValue("Project ID");
-		const fields = {
-				// the Project ID on the review is a number, but the PROJECT_ID field on the submissions is a string.  ffs.
-			[SubmissionFields.ProjectID]: String(projectID)
-		};
-		const submissionRecords = submissionRecordIDsByResponse.get(initialID);
+	for (const [formID, submissionRecordIDsByResponse] of entries(submissionRecordIDsByResponseByFormID)) {
+		const updatedSubmissions = [];
 
-		if (submissionRecords) {
-			submissionRecords.forEach(({ id }) => updatedSubmissions.push({ id, fields }));
+		for (const [initialID, reviewRecordID] of entries(reviewRecordsByInitialID)) {
+			const record = await reviewsTable.selectRecordAsync(reviewRecordID.id);
+			const projectID = record.getCellValue("Project ID");
+			const fields = {
+					// the Project ID on the review is a number, but the PROJECT_ID field on the submissions is a string.  ffs.
+				[SubmissionFields.ProjectID]: String(projectID)
+			};
+			const submissionRecords = submissionRecordIDsByResponse.get(initialID);
+
+			if (submissionRecords) {
+				submissionRecords.forEach(({ id }) => updatedSubmissions.push({ id, fields }));
+			}
+		}
+
+		if (updatedSubmissions.length) {
+			output.markdown(`Updating "${Forms[formID].name}" submissions with Project IDs...`);
+
+			await loopChunks(updatedSubmissions, async (chunk) => submissionsTablesByFormID[formID].updateRecordsAsync(chunk));
 		}
 	}
-
-	if (updatedSubmissions.length) {
-		output.markdown(`Updating "${Forms[formID].name}" submissions with Project IDs...`);
-
-		await loopChunks(updatedSubmissions, async (chunk) => submissionsTablesByFormID[formID].updateRecordsAsync(chunk));
-	}
 }
+
+//for (const [formID, submissionRecordIDsByResponse] of entries(submissionRecordIDsByResponseByFormID)) {
+//	const updatedSubmissions = [];
+//
+//	for (const [initialID, reviewRecordID] of entries(reviewRecordsByInitialID)) {
+//		const record = await reviewsTable.selectRecordAsync(reviewRecordID.id);
+//		const projectID = record.getCellValue("Project ID");
+//		const fields = {
+//				// the Project ID on the review is a number, but the PROJECT_ID field on the submissions is a string.  ffs.
+//			[SubmissionFields.ProjectID]: String(projectID)
+//		};
+//		const submissionRecords = submissionRecordIDsByResponse.get(initialID);
+//
+//		if (submissionRecords) {
+//			submissionRecords.forEach(({ id }) => updatedSubmissions.push({ id, fields }));
+//		}
+//	}
+//
+//	if (updatedSubmissions.length) {
+//		output.markdown(`Updating "${Forms[formID].name}" submissions with Project IDs...`);
+//
+//		await loopChunks(updatedSubmissions, async (chunk) => submissionsTablesByFormID[formID].updateRecordsAsync(chunk));
+//	}
+//}
 
 // ====================================================================================================================
 // create metadata items associated with the reviews we created above
@@ -965,6 +1136,39 @@ function utils() {
 		return [timeStart, timeEnd];
 	})();
 
+	async function chain(
+		context,
+		fns)
+	{
+		if (Array.isArray(context)) {
+			fns = context;
+			context = {};
+		}
+
+		for (const fn of fns) {
+			if (typeof fn !== "function") {
+				continue;
+			} else if (fn === console.log) {
+				console.log(context);
+				continue;
+			}
+
+			timeStart(fn.name);
+
+			const result = await fn(context);
+
+			timeEnd(fn.name);
+
+			if (result === true) {
+				break;
+			} else if (result && typeof result === "object") {
+				context = result;
+			}
+		}
+
+		return context;
+	}
+
 	return {
 		GroupedArray,
 		DefaultMap,
@@ -982,6 +1186,7 @@ function utils() {
 		confirm,
 		timeStart,
 		timeEnd,
+		chain,
 	};
 }
 
