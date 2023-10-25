@@ -2,6 +2,7 @@
 
 	// "import" these utilities from the functions at the end of this script
 const { GroupedArray, DefaultMap, getCellObject, getFieldsByName, getRecordObjects, loopChunks, confirm, clearTable, parseDate, by, chain } = utils();
+const { getProjectStatusFields } = status();
 const { values, entries, fromEntries } = Object;
 
 const Basename = "Cannabis Business Permit";
@@ -35,6 +36,7 @@ const ReviewFields = {
 	InitialID: "Initial Response ID",
 	ResponseNum: "Initial Application Screendoor Number",
 	OriginalDate: "Project Submission Date",
+	Status: "Project Status",
 };
 const Forms = [
 	["4209", "Temporary Permit"],
@@ -59,9 +61,6 @@ const Forms = [
 	["8110", "Renewal", "ren", "Ren1"],
 	["9026", "Renewal", "ren", "Ren2"],
 	["9436", "Renewal", "ren", "Ren3"]
-//	["8110", "Renewal", "biz", "Ren1"],
-//	["9026", "Renewal", "biz", "Ren2"],
-//	["9436", "Renewal", "biz", "Ren3"]
 ].reduce((result, [id, name, base, shortName]) => {
 	const info = { id, name, base, shortName };
 
@@ -150,6 +149,7 @@ const StringFieldTypes = [
 	"phoneNumber",
 	"url",
 ];
+const ActivityTableName = "Activity History";
 //const ApprovalPattern = /(approved .+ edits|submitted edits for review\.)/;
 //const ApprovalPattern = /(approved .+ edits|edited the response\.|submitted edits for review\.)/;
 const ApprovalPattern = /(approved .+ edits|edited the response\.)/;
@@ -172,15 +172,20 @@ output.markdown(`Starting at **${new Date().toLocaleString()}**`);
 const result = await chain(
 	context,
 	[
-		importMetadataFromJSON,
+		createApprovalMetadataFromJSONFile,
 		clearExistingRecords,
 		convertScreendoorDataToAirtableData,
+		console.log,
 //		groupSubmissionsByFormAndInitialID,
 		createSubmissions,
+		console.log,
 		createReviewData,
-		createReviews,
+		console.log,
+		createReviewRecords,
 		updateSubmissionsWithProjectID,
+		console.log,
 		createMetadataRecords,
+//		connectMetadataRecords,
 	]
 );
 
@@ -192,7 +197,7 @@ output.markdown(`Total time: **${((Date.now() - startTime) / 1000).toFixed(2)}s*
 // import metadata from JSON file
 // ====================================================================================================================
 
-async function importMetadataFromJSON(
+async function createApprovalMetadataFromJSONFile(
 	context)
 {
 	const jsonFile = await input.fileAsync(
@@ -241,6 +246,7 @@ async function clearExistingRecords(
 	await Promise.all(submissionsTables.map((table) => clearTable(table)));
 	await clearTable(reviewsTable);
 	await clearTable(metadataTable);
+	await clearTable(base.getTable(ActivityTableName));
 }
 
 // ====================================================================================================================
@@ -254,6 +260,7 @@ async function convertScreendoorDataToAirtableData(
 	const screendoorTable = base.getTable(ScreendoorTableName);
 	const screendoorRevTable = base.getTable(ScreendoorRevTableName);
 	const airtableDataByInitialIDByFormID = new DefaultMap(GroupedArray);
+	const iaStatusInfoByInitialID = {};
 	const fieldNameMappings = getNameMappings();
 	const allowedFormIDs = Forms.info("biz").map(({ id }) => id);
 
@@ -360,6 +367,7 @@ async function convertScreendoorDataToAirtableData(
 		.concat(await getRecordObjects(screendoorTable, ScreendoorFields))
 		// make sure we're not including rogue 9396 forms, as well as all the revisions with null JSON
 		.filter(({ AIRTABLE_JSON, SCREENDOOR_FORM_ID }) => AIRTABLE_JSON && allowedFormIDs.includes(SCREENDOOR_FORM_ID))
+//.filter(({ RESPONSE_ID }) => RESPONSE_ID > 3840000)
 		.forEach(({
 			RESPONSE_ID,
 			RESPONSE_NUM,
@@ -371,6 +379,7 @@ async function convertScreendoorDataToAirtableData(
 			SCREENDOOR_FORM_ID: formID
 		}) => {
 			const initialID = INITIAL_RESPONSE_ID ?? RESPONSE_ID;
+			const tableMetadata = submissionsTableMetadataByFormID[formID];
 			const overrides = {
 					// this key is in the Airtable JSON, but for the revisions, it's not the ID of the original submission; it's some
 					// other, unrelated ID.  but we need the original response ID to link the revisions to the originals.  so overwrite
@@ -383,9 +392,17 @@ async function convertScreendoorDataToAirtableData(
 					// to distinguish them when generating Form.io records.  ARCHIVED_ID is only set on revisions.
 				SUBMISSION_ID: ARCHIVED_ID ? "0" : "",
 			};
-			const data = getDataFromJSON(AIRTABLE_JSON, submissionsTableMetadataByFormID[formID], overrides);
 
-			airtableDataByInitialIDByFormID.get(formID).push(initialID, data);
+			if (formID === Forms.IA.id) {
+				const { status, labels } = JSON.parse(RESPONSE_JSON);
+
+					// the last submission to store its status and labels should be the most recent submission, since we sorted
+					// the revisions before the submissions above
+				iaStatusInfoByInitialID[initialID] = [status, labels];
+			}
+
+			airtableDataByInitialIDByFormID.get(formID).push(initialID,
+				getDataFromJSON(AIRTABLE_JSON, tableMetadata, overrides));
 
 			if (AIRTABLE_JSON_BO) {
 					// 5804 records return the Initial Application data in the AIRTABLE_JSON field and have another JSON field
@@ -404,16 +421,16 @@ async function convertScreendoorDataToAirtableData(
 					getDataFromJSON(AIRTABLE_JSON_BO, tableMetadata, overrides));
 			}
 		});
-console.log(airtableDataByInitialIDByFormID.getAll());
 
 	return {
 		...context,
+		iaStatusInfoByInitialID,
 		airtableDataByInitialIDByFormID,
 	};
 }
 
 // ====================================================================================================================
-// group submissisons by form
+// group submissions by form
 // ====================================================================================================================
 
 async function groupSubmissionsByFormAndInitialID(
@@ -466,10 +483,6 @@ const missingMetadata = [];
 console.log("form", formID, "approvalMetadataByInitialID", approvalMetadataByInitialID);
 
 		airtableDataByInitialID.forEach((initialID, items) => {
-//// TODO: remove this
-//if ((formID === Forms.IA.id || formID === Forms.BO.id) && items[0].RESPONSE_NUM < 1120) {
-//	return;
-//}
 			const [firstSubmission, ...rest] = items;
 
 			submissions.push({ fields: firstSubmission });
@@ -507,15 +520,14 @@ missingMetadata.push([formID, initialID, firstSubmission, rest]);
 missingMetadata.length && console.error(`missingMetadata: ${missingMetadata.length}, total: ${airtableDataByInitialID.keys().length}`, missingMetadata);
 
 console.log(formID, submissions);
-//console.log(submissions.map(({ fields: { dateYouContactedOfficeOfCannabis } }, i) => [i, dateYouContactedOfficeOfCannabis, typeof dateYouContactedOfficeOfCannabis]).join("\n"));
 
 		await loopChunks(submissions, async (chunk) => {
 			const records = await submissionsTable.createRecordsAsync(chunk);
 
 			chunk.forEach((submission, i) => {
-				const { fields: { [InitialID]: initialID } } = submission;
+				const { fields: { [SubmissionFields.ID]: responseID } } = submission;
 
-				recordIDsByResponse.push(initialID, { id: records[i] });
+				recordIDsByResponse.push(responseID, { id: records[i] });
 			});
 		});
 
@@ -529,18 +541,14 @@ console.log(formID, submissions);
 // create reviews from Initial Application submissions
 // ====================================================================================================================
 
-// TODO: for some reason, when we create the reviews in the loop above, iaRecordIDs is just one item with all the records in an inner array
 async function createReviewData(
 	context)
 {
-	const { submissionRecordIDsByResponseByFormID } = context;
-//	const iaRecordIDs = submissionRecordIDsByResponseByFormID[Forms.IA.id].values().slice(-22);
-const iaRecordIDs = submissionRecordIDsByResponseByFormID[Forms.IA.id].values();
+	const { submissionRecordIDsByResponseByFormID, iaStatusInfoByInitialID } = context;
+	const iaRecordIDs = submissionRecordIDsByResponseByFormID[Forms.IA.id].values();
 	const reviews = [];
 
-	console.log(iaRecordIDs);
-
-	output.markdown(`Creating ${iaRecordIDs.length} reviews...`);
+	output.markdown(`Constructing ${iaRecordIDs.length} reviews...`);
 
 	function normalizeLink(
 		record)
@@ -561,7 +569,6 @@ const iaRecordIDs = submissionRecordIDsByResponseByFormID[Forms.IA.id].values();
 		const latestRecord = await submissionsTable.selectRecordAsync(latestRecordID.id);
 		const latest = getCellObject(latestRecord, values(SubmissionFields));
 		const responseID = latest[SubmissionFields.ID];
-// TODO: this will link only one of the three GO submission forms
 			// link to all of the part 2 submissions related to this review
 		const linkFields = Forms.info("part2")
 			.reduce((result, { name, id }) => {
@@ -573,6 +580,7 @@ const iaRecordIDs = submissionRecordIDsByResponseByFormID[Forms.IA.id].values();
 
 				return result;
 			}, {});
+		const statusFields = getProjectStatusFields(...iaStatusInfoByInitialID[responseID]);
 		let originalSubmittedDate = latest[SubmissionFields.Submitted];
 
 		if (previousRecordIDs.length) {
@@ -592,6 +600,7 @@ const iaRecordIDs = submissionRecordIDsByResponseByFormID[Forms.IA.id].values();
 				[ReviewFields.MostRecent]: normalizeLink(latestRecordID),
 				[ReviewFields.Previous]: normalizeLink(previousRecordIDs),
 				...linkFields,
+				...statusFields,
 			}
 		});
 	}
@@ -603,11 +612,13 @@ const iaRecordIDs = submissionRecordIDsByResponseByFormID[Forms.IA.id].values();
 // create review records
 // ====================================================================================================================
 
-async function createReviews(
+async function createReviewRecords(
 	context)
 {
 	const { reviews, reviewsTable } = context;
 	const reviewRecordsByInitialID = {};
+
+	output.markdown(`Creating ${reviews.length} review records...`);
 
 	await loopChunks(reviews, async (chunk) => {
 		const records = await reviewsTable.createRecordsAsync(chunk);
@@ -667,13 +678,12 @@ async function createMetadataRecords(
 	const metadataRecords = [];
 	const skippedNumbers = new Set();
 
-//console.log(reviewRecordsByInitialID);
-
 	for (const item of metadataItems) {
 		const initialID = item.initialID ?? item.responseID;
 		const reviewRecord = reviewRecordsByInitialID[initialID];
 
-		if (reviewRecord) {
+			// ignore metadata for any rogue forms that got scraped
+		if (reviewRecord && Forms[item.formID]) {
 			const fields = MetadataTableFields.reduce((result, { name, key }) => ({
 				...result,
 				[name]: key
@@ -686,31 +696,58 @@ async function createMetadataRecords(
 				// this field is expecting a string, so convert the number
 			fields["Response Number"] = String(fields["Response Number"]);
 			fields["Response ID"] = initialID;
-
-// TODO: fix missing form or filter these
-			if (Forms[item.formID]) {
-				fields["Form"] = { name: Forms[item.formID].name };
-			} else {
-				console.error(`Bad form: ${item.formID} in ${initialID}`);
-			}
-
-	//		fields["Form"] = { name: Forms[item.formID].name };
+			fields["Form"] = { name: Forms[item.formID].name };
 			metadataRecords.push({ fields });
 		} else {
 			skippedNumbers.add(initialID);
 		}
 	}
 
-// TODO: too many skipped at the moment
-//if (skippedNumbers.size > 0) {
-//	output.markdown(`Skipping metadata response numbers with no matching reviews in \`${reviewsTable.name}\`:\n\n${[...skippedNumbers].join(", ")}`);
-//}
-
-console.log(metadataRecords);
+	if (skippedNumbers.size > 0) {
+		output.markdown(`Skipping metadata response numbers with no matching reviews:\n\n${[...skippedNumbers].join(", ")}`);
+	}
 
 	output.markdown(`Starting metadata import...`);
 
 	await loopChunks(metadataRecords, (chunk) => metadataTable.createRecordsAsync(chunk));
+}
+
+// ====================================================================================================================
+// associate existing metadata items with the reviews
+// ====================================================================================================================
+
+async function connectMetadataRecords(
+	context)
+{
+	const { metadataTable, reviewRecordsByInitialID } = context;
+	const metadataRecords = (await getRecordObjects(metadataTable, ["Response ID", "Form"]));
+	const skippedNumbers = new Set();
+	const linkedFieldName = MetadataTableFields.at(-1).name;
+	const updatedRecords = [];
+
+	for (const record of metadataRecords) {
+		const initialID = record["Response ID"];
+		const reviewRecord = reviewRecordsByInitialID[initialID];
+
+			// ignore metadata for any rogue forms that got scraped
+		if (reviewRecord && Forms[record.Form]) {
+			const { id } = reviewRecord;
+			const fields = { [linkedFieldName]: [{ id }] };
+
+			updatedRecords.push({ id: record._id, fields });
+		} else {
+			skippedNumbers.add(initialID);
+		}
+	}
+
+	if (skippedNumbers.size > 0) {
+		output.markdown(`Skipping metadata response numbers with no matching reviews:\n\n${[...skippedNumbers].join(", ")}`);
+	}
+console.log(updatedRecords);
+
+	output.markdown(`Starting metadata linking...`);
+
+	await loopChunks(updatedRecords, async (chunk) => metadataTable.updateRecordsAsync(chunk));
 }
 
 }
@@ -1065,7 +1102,7 @@ function utils() {
 			if (typeof fn !== "function") {
 				continue;
 			} else if (fn === console.log) {
-				console.log(context);
+				console.log("current context:\n", context);
 				continue;
 			}
 
@@ -1103,6 +1140,64 @@ function utils() {
 		timeStart,
 		timeEnd,
 		chain,
+	};
+}
+
+function status() {
+	const ScreendoorToProjectStatus = {
+		"Approved": "Approved",
+		"Archived": "Archived",
+		"Build-out": "Build-out",
+		"Denied": "Denied",
+		"Follow up Form - Not Reviewed": null,
+		"Follow up Form - Reviewed": null,
+		"On Hold": "On-Hold",
+		"On Hold (Portability)": "On-Hold (portability)",
+		"Parking Lot": "Parking Lot",
+		"Processing": "Processing",
+		"Submitted": "Submitted",
+		"Submitted - pending initial OOC review": "Submitted-PIR",
+		"Test Account": null,
+		"Withdrawn": "Withdrawn"
+	};
+	const LabelToStatusFields = {
+		"FUF - Reviewed, follow up needed": [null, null],
+		"FUF - not reviewed yet": [null, null],
+		"Fire - Approved": [null, null],
+		"OOC - Approved to Occupy": [null, "Lease Approved"],
+		"OOC(Conviction H.) - Approved": [null, null],
+		"OOC(Land-Use) - sent for review": [null, null],
+		"OOC(Plan Prelim) - Referred": [null, null],
+		"Plan (Prelim) - Rejected, other reason": ["Rejected", null],
+		"Plan(Land-Use) - Approved": ["Land Use Approved", null],
+		"Plan(Prelim) - Need more info": ["More Info Needed", null],
+		"Plan(Prelim) - Pre-existing approval in place": ["Pre-Existing Approval", null],
+		"Plan(Prelim) - Rejected, improper zoning": ["Rejected", null],
+		"Plan(Prelim) - Zoning Compliant, additional approval required": ["Zoning Compliant", null],
+		"Police(Security) - Reviewed": [null, null]
+	};
+
+	function getProjectStatusFields(
+		status,
+		labels)
+	{
+		const fields = {};
+		const projectStatus = ScreendoorToProjectStatus[status];
+
+		projectStatus && (fields["Project Status"] = { name: projectStatus });
+
+		labels?.forEach((label) => {
+			const [informalZoningReview, proofToOccupy] = LabelToStatusFields[label] || [];
+
+			informalZoningReview && (fields["Informal Zoning Review"] = { name: informalZoningReview });
+			proofToOccupy && (fields["Proof to Occupy"] = { name: proofToOccupy });
+		});
+
+		return fields;
+	}
+
+	return {
+		getProjectStatusFields
 	};
 }
 
