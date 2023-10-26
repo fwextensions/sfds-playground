@@ -38,6 +38,22 @@ const ReviewFields = {
 	OriginalDate: "Project Submission Date",
 	Status: "Project Status",
 };
+const BOBizOwnerList = "wj1tb99y";
+const BONameFields = {
+	First: "ftx0x558",
+	Last: "4m3npp4g",
+	AirtableField: "bizOwnerName",
+};
+const BOBizEntityList = "yse4clw9";
+const BOBizEntityFields = {
+  "qrtvzu67": "businessNameEntity#",
+  "hy38kmwp": "tradeNameEntity#",
+  "y7g3u3qe": "businessAddressEntity#.",
+  "30oj0r4t": "dateOfIncorporationEntity#",
+  "2egh7w2w": "percentageOfOwnershipEntity#",
+  "n9d6m859": "ownershipStructureDetailsEntity#",
+  "vcz5ggkc": "businessFormationDocs#.1.businesssFormationDocumentsEntity#.{UPLOAD}.1"
+};
 const Forms = [
 	["4209", "Temporary Permit"],
 	["4225", "Article 33"],
@@ -184,8 +200,8 @@ const result = await chain(
 		createReviewRecords,
 		updateSubmissionsWithProjectID,
 		console.log,
-		createMetadataRecords,
-//		connectMetadataRecords,
+//		createMetadataRecords,
+		connectMetadataRecords,
 	]
 );
 
@@ -263,6 +279,8 @@ async function convertScreendoorDataToAirtableData(
 	const iaStatusInfoByInitialID = {};
 	const fieldNameMappings = getNameMappings();
 	const allowedFormIDs = Forms.info("biz").map(({ id }) => id);
+
+	const replaceIndex = (value, i) => value.replaceAll("#", i + 1);
 
 	function getSelectFromName(
 		name)
@@ -368,6 +386,7 @@ async function convertScreendoorDataToAirtableData(
 		// make sure we're not including rogue 9396 forms, as well as all the revisions with null JSON
 		.filter(({ AIRTABLE_JSON, SCREENDOOR_FORM_ID }) => AIRTABLE_JSON && allowedFormIDs.includes(SCREENDOOR_FORM_ID))
 //.filter(({ RESPONSE_ID }) => RESPONSE_ID > 3840000)
+//.filter(({ RESPONSE_ID }) => RESPONSE_ID < 2183940)
 		.forEach(({
 			RESPONSE_ID,
 			RESPONSE_NUM,
@@ -393,28 +412,82 @@ async function convertScreendoorDataToAirtableData(
 				SUBMISSION_ID: ARCHIVED_ID ? "0" : "",
 			};
 
-			if (formID === Forms.IA.id) {
-				const { status, labels } = JSON.parse(RESPONSE_JSON);
-
-					// the last submission to store its status and labels should be the most recent submission, since we sorted
-					// the revisions before the submissions above
-				iaStatusInfoByInitialID[initialID] = [status, labels];
-			}
-
 			airtableDataByInitialIDByFormID.get(formID).push(initialID,
 				getDataFromJSON(AIRTABLE_JSON, tableMetadata, overrides));
 
-			if (AIRTABLE_JSON_BO) {
+			if (formID === Forms.IA.id) {
 					// 5804 records return the Initial Application data in the AIRTABLE_JSON field and have another JSON field
 					// for the data that was separated out into the Business Ownership form
 				const boFormID = Forms.BO.id;
 				const tableMetadata = submissionsTableMetadataByFormID[boFormID];
-					// we want to add the count of this array in the Screendoor JSON to the BO submission
-				const { responses: { wj1tb99y: screendoorBizOwners } } = JSON.parse(RESPONSE_JSON);
+					// we need to pull some data from the Screendoor JSON for the IA and BO submissions
+				const {
+					status,
+					labels,
+					responses: {
+						[BOBizOwnerList]: bizOwners,
+						[BOBizEntityList]: entities,
+					}
+				} = JSON.parse(RESPONSE_JSON);
 
-				if (Array.isArray(screendoorBizOwners)) {
+					// the last submission to store its status and labels here should be the most recent submission, since we
+					// sorted the revisions before the submissions above
+				iaStatusInfoByInitialID[initialID] = [status, labels];
+
+				if (Array.isArray(bizOwners)) {
 						// the Form.io form can only show up to 5 business owners, so limit the count
-					overrides.bizOwnerNumber = Math.min(screendoorBizOwners.length, 5);
+					overrides.bizOwnerNumber = Math.min(bizOwners.length, 5);
+
+					bizOwners.slice(0, 5).forEach((owner, i) => {
+						const {
+							[BONameFields.First]: first,
+							[BONameFields.Last]: last,
+						} = owner;
+
+						overrides[BONameFields.AirtableField + (i + 1)] = `${first} ${last}`;
+					});
+				}
+
+				if (Array.isArray(entities)) {
+					entities.slice(0, 5).forEach((entity, entityIndex) => {
+						entries(BOBizEntityFields).forEach(([sdName, atName]) => {
+							const value = entity[sdName];
+							const atNameIndexed = replaceIndex(atName, entityIndex);
+
+							if (value) {
+								if (atNameIndexed.includes("Docs")) {
+									if (value.length > 3) {
+										console.error("Skipping some upload docs", RESPONSE_JSON);
+									}
+
+									value.slice(0, 3).forEach((upload, uploadIndex) => {
+										overrides[atNameIndexed.replace(".1.", `.${uploadIndex + 1}.`)] = upload.filename;
+									});
+								} else if (atNameIndexed.includes("Address")) {
+										// this is the address object
+									const { country, zipcode, street, ...address } = value;
+
+										// rename zipcode and street keys
+									entries({ zip: zipcode, line1: street, ...address }).forEach(([key, addrValue]) => {
+										if (addrValue) {
+											overrides[atNameIndexed + key] = addrValue;
+										}
+									});
+								} else if (atNameIndexed.includes("date")) {
+									const { year, month, day } = value;
+
+										// make sure this isn't an empty object
+									if ([year, month, day].every(Number.isFinite)) {
+										overrides[atNameIndexed] = new Date(`${year}-${month}-${day}`).toISOString();
+									}
+								} else if (atNameIndexed.includes("percentage")) {
+									overrides[atNameIndexed] = parseFloat(value);
+								} else {
+									overrides[atNameIndexed] = value;
+								}
+							}
+						});
+					});
 				}
 
 				airtableDataByInitialIDByFormID.get(boFormID).push(initialID,
@@ -483,6 +556,7 @@ const missingMetadata = [];
 console.log("form", formID, "approvalMetadataByInitialID", approvalMetadataByInitialID);
 
 		airtableDataByInitialID.forEach((initialID, items) => {
+				// submissions in this array were pushed on to it from oldest to newest, so firstSubmission is the oldest
 			const [firstSubmission, ...rest] = items;
 
 			submissions.push({ fields: firstSubmission });
@@ -494,6 +568,7 @@ missingMetadata.push([formID, initialID, firstSubmission, rest]);
 //return;
 //				throw new Error(`No metadata for response ${initialID} in form ${formID}.`);
 				} else {
+						// the metadata was sorted newest to oldest when it was imported above, so the newest date is the first
 					const newestSubmittedDate = approvalMetadataByInitialID.get(initialID)[0];
 
 						// when there are revisions, the submission date of the "current" submission is not included in the JSON, so we
@@ -719,11 +794,17 @@ async function createMetadataRecords(
 async function connectMetadataRecords(
 	context)
 {
-	const { metadataTable, reviewRecordsByInitialID } = context;
+	let { metadataTable, reviewsTable, reviewRecordsByInitialID } = context;
 	const metadataRecords = (await getRecordObjects(metadataTable, ["Response ID", "Form"]));
-	const skippedNumbers = new Set();
 	const linkedFieldName = MetadataTableFields.at(-1).name;
+	const skippedNumbers = new Set();
 	const updatedRecords = [];
+
+	if (!reviewRecordsByInitialID) {
+		const reviews = await getRecordObjects(reviewsTable, values(ReviewFields));
+
+		reviewRecordsByInitialID = fromEntries(reviews.map((review) => [review[ReviewFields.InitialID], review]));
+	}
 
 	for (const record of metadataRecords) {
 		const initialID = record["Response ID"];
@@ -2048,7 +2129,11 @@ uploadProofOfAccreditationOrApplication.{UPLOAD}.1\tuploadProofOfAccreditationOr
 		.split("\n")
 		.filter(line => line)
 		.map((line) => line.split("\t"))
+			// to make it simpler, we just copy the whole mapping table, so most of the lines have identical formio and
+			// Airtable names, which don't need mapping
 		.filter(([formio, airtable]) => formio && airtable && formio !== airtable)
+			// the first column in the table is the formio name and the second is the Airtable name, but we want to map from
+			// the latter to the former
 		.map((mapping) => mapping.reverse());
 
 	return Object.fromEntries(entries);
