@@ -1,33 +1,64 @@
+body {
+	background: #f6f6f6;
+}
+
 body > main {
 	margin: 5rem auto;
 	max-width: 30rem;
 }
 
 h1 {
-	font-size: 1.5rem;
+	color: white;
+	background-color: rgb(0, 119, 218);
+	font-size: 1.15rem;
 	text-align: center;
 	text-transform: uppercase;
-	margin-bottom: 4rem;
+	padding: 1rem;
+	margin-bottom: 0;
+	border: 1px solid inherit;
+	border-top: none;
+	border-radius: .5rem .5rem 0 0;
 }
 
 h3 {
+	font-family: "Droid Serif", Georgia, Times, serif;
 	font-size: 1.5rem;
 	text-align: center;
 	padding: 0 2rem;
 	margin-bottom: 2rem;
 }
 
-nav {
-	margin-bottom: 3rem;
+.btn-info {
+	font-family: "Lato", Helvetica, Arial, Verdana, sans-serif;
+	font-size: smaller;
+	font-weight: bold;
+	letter-spacing: .2em;
+	text-transform: uppercase;
+	padding: 1.5rem;
+	color: rgb(0, 119, 218);
+	background: white;
+	border: 2px solid rgb(0, 119, 218);
+
+	&:hover {
+		color: white;
+		background-color: rgb(0, 119, 218);
+		border-color: rgb(0, 119, 218);
+	}
+
+	&:active {
+		background-color: rgb(0, 91, 167) !important;
+		border-color: rgb(0, 91, 167) !important;
+	}
 }
 
-.formio-wizard-nav-container {
-	margin-top: 4rem;
-	justify-content: center;
+.desc {
+	color: rgb(118, 118, 118);
+	font-size: smaller;
+	line-height: 1.25;
 }
 
-.pagination {
-	opacity: .2;
+.form-text > div.desc {
+	margin-left: 1.5em;
 }
 
 .desc-above {
@@ -43,6 +74,9 @@ nav {
 	}
 
 	.form-text {
+		color: rgb(118, 118, 118);
+		font-size: smaller;
+		line-height: 1.25;
 		grid-area: desc;
 		margin-bottom: .75rem;
 	}
@@ -66,4 +100,268 @@ nav {
 		font-style: normal;
 		display: block;
 	}
+}
+
+.formio-component-editgrid .btn-primary {
+	margin: 0 auto;
+}
+
+.editgrid-listgroup {
+	margin-bottom: 2.5rem;
+}
+
+.pagination {
+	opacity: .05;
+	transition: opacity 300ms ease-out;
+
+	&:hover {
+		opacity: .4;
+	}
+}
+
+.wizard-page {
+	border: 1px solid #dedee0;
+	border-radius: .5rem .5rem 0 0;
+	background: #fff;
+	padding: 40px;
+}
+
+.wizard-page .col-form-label {
+	box-sizing: border-box;
+	color: rgb(34, 34, 34);
+	cursor: auto;
+	font-size: 14px;
+	font-style: normal;
+	font-weight: 600;
+	letter-spacing: 1.6px;
+	line-height: 19.25px;
+	margin-bottom: 8px;
+	margin-top: 0px;
+	text-transform: uppercase
+}
+
+.wizard-page .col-form-label p {
+	font-size: .8125rem;
+	line-height: 1.25;
+	color: #767676;
+	margin-bottom: 16px !important;
+	margin-top: 0;
+	cursor: auto;
+	font-style: normal;
+	font-weight: 400;
+	text-transform: none;
+}
+
+.formio-wizard-nav-container {
+	background: rgb(245, 248, 249);
+	padding: 2rem 0;
+	justify-content: center;
+	border: 1px solid #dedee0;
+	border-top: none;
+	border-radius: 0 0 .5rem .5rem;
+}
+
+.form-control {
+	background-color: #f9f9f9;
+}
+
+.form-control::placeholder {
+	color: #767676;
+	opacity: 0.5;
+}
+
+.form-check-label, .form-check-input {
+	cursor: pointer;
+}
+
+.form-check-input {
+	display: flex;
+	align-content: center;
+	justify-content: center;
+	font-size: 2rem;
+	padding: 0.1rem;
+	border: 0.25rem;
+	border-radius: 0.5rem;
+}
+
+.form-check-label {
+	font-size: .875rem;
+	line-height: 1.375;
+	font-weight: 600 !important;
+	color: rgb(77, 77, 77);
+}
+
+header.you-header {
+	padding: 1rem 2rem 0;
+	border-bottom: 1px solid #dedee0;
+	margin-top: 0;
+}
+
+.you-header h2 {
+	font-size: 1.375rem;
+	line-height: 1.25;
+	text-align: center;
+	font-family: "Droid Serif", Georgia, Times, serif;
+	font-weight: 400;
+	box-sizing: border-box;
+	cursor: auto;
+	font-style: normal;
+	color: #222;
+}
+
+.field-required::after {
+	display: none;
+}
+
+.form-group {
+	margin-bottom: 1rem;
+	cursor: auto;
+	font-style: normal;
+	font-weight: 400;
+	line-height: 24px;
+	color: #222;
+
+}
+
+.border-bottom {
+	border-bottom: 1px solid #dedee0;
+}
+
+.no-email-checkbox-label {
+	color: #0077da;
+	margin-left: 10px;
+}
+
+.form-label {
+	text-transform: uppercase;
+	letter-spacing: .1rem;
+	font-size: .875rem;
+	line-height: 1.375;
+	font-weight: 600 !important;
+	margin-bottom: .5rem;
+}
+
+.app-card_question {
+	padding-top: 1rem;
+	font-size: 1.375rem;
+	line-height: 1.25;
+	text-align: center;
+	font-weight: 400;
+	margin-top: 0;
+	margin-bottom: 1rem;
+	box-sizing: border-box;
+	cursor: auto;
+	font-style: normal;
+	color: #222;
+}
+
+h2 {
+	font-family: "Droid Serif", Georgia, Times, serif;
+	font-weight: 400;
+	margin-top: 0;
+	margin-bottom: 1rem;
+}
+
+.text-input {
+	margin: 0 0 1.25rem;
+	border-radius: 4px;
+	-moz-appearance: none;
+	background-color: #f9f9f9;
+	border-style: solid;
+	border-width: 1px;
+	border-color: #ccc;
+	box-shadow: none;
+	color: rgba(0, 0, 0, 0.75);
+	display: block;
+	font-family: inherit;
+	font-size: 1rem;
+	height: 2.8125rem;
+	margin: 0 0 1.25rem;
+	padding: .625rem;
+	width: 100%;
+	box-sizing: border-box;
+	transition: border-color .15s linear, background .15s linear;
+}
+
+.form-note {
+	font-size: .8125rem;
+	line-height: 1.25;
+	color: #767676;
+}
+
+.app-card {
+	background: #fff;
+	border: 1px solid #dedee0;
+	border-radius: .5rem;
+}
+
+.app-inner {
+	padding: 1rem 2rem 0;
+}
+
+.form-group-date {
+	float: left;
+	clear: none;
+	margin-right: 1rem;
+	width: 4rem;
+}
+
+.form-group-text-area {
+	margin: 0 0 1.25rem;
+}
+
+.form-control:focus,
+input[type="checkbox"]:focus {
+	box-shadow: 0 0 0 2px #fff, 0 0 3px 4px #00bed5;
+}
+
+.formio-error-wrapper {
+	background-color: #0000;
+	padding: 0px;
+}
+
+.alert-box {
+	background-color: #e31c3d;
+	color: #fff;
+	border-color: #c31834;
+	line-height: 1.375;
+	margin: 0 !important;
+	border-style: solid;
+	border-width: 0;
+	display: block;
+	font-size: .875rem;
+	font-weight: 400;
+	padding: .875rem 1.875rem .875rem .875rem;
+	position: relative;
+	transition: opacity 300ms ease-out;
+	font-family: "Open Sans", Helvetica, Arial, Verdana, sans-serif;
+	cursor: auto;
+	font-style: normal;
+	box-sizing: border-box;
+}
+
+.alert-body {
+	margin-bottom: 0;
+}
+
+.button-link, .close:hover {
+	color: #fff;
+	line-height: .9rem;
+	right: .5rem;
+	background: inherit;
+	font-size: 1.375rem;
+	margin-top: -.6875rem;
+	opacity: .3;
+	padding: 0 6px 4px;
+	position: absolute;
+	top: 50%;
+	border-width: 0;
+	display: inline;
+	letter-spacing: normal;
+	margin-bottom: 0;
+	text-transform: none;
+	border-radius: 0;
+	font-family: "Open Sans", Helvetica, Arial, Verdana, sans-serif;
+	font-weight: 400 !important;
+	text-align: left;
 }

@@ -2,7 +2,9 @@
 	font-size: smaller;
 	padding: .75rem 0;
 	border: 1px solid #ccc;
-	border-radius: .25rem;
+	border-top: none;
+	border-radius: 0 0 .5rem .5rem;
+	background: white;
 	width: 100%;
 	display: flex;
 	justify-items: stretch;
