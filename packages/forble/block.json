@@ -1,0 +1,4 @@
+{
+    "frontendEntry": "./frontend/index.tsx",
+    "frontendTestingEntry": "./test/index.jsx"
+}

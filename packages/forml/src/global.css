@@ -140,6 +140,7 @@ h3 {
 	text-transform: uppercase
 }
 
+/*
 .wizard-page .col-form-label p {
 	font-size: .8125rem;
 	line-height: 1.25;
@@ -151,6 +152,7 @@ h3 {
 	font-weight: 400;
 	text-transform: none;
 }
+*/
 
 .formio-wizard-nav-container {
 	background: rgb(245, 248, 249);
@@ -174,7 +176,7 @@ h3 {
 	cursor: pointer;
 }
 
-.form-check-input {
+/*.form-check-input {
 	display: flex;
 	align-content: center;
 	justify-content: center;
@@ -182,7 +184,7 @@ h3 {
 	padding: 0.1rem;
 	border: 0.25rem;
 	border-radius: 0.5rem;
-}
+}*/
 
 .form-check-label {
 	font-size: .875rem;
@@ -209,9 +211,11 @@ header.you-header {
 	color: #222;
 }
 
+/*
 .field-required::after {
 	display: none;
 }
+*/
 
 .form-group {
 	margin-bottom: 1rem;
@@ -260,27 +264,6 @@ h2 {
 	font-weight: 400;
 	margin-top: 0;
 	margin-bottom: 1rem;
-}
-
-.text-input {
-	margin: 0 0 1.25rem;
-	border-radius: 4px;
-	-moz-appearance: none;
-	background-color: #f9f9f9;
-	border-style: solid;
-	border-width: 1px;
-	border-color: #ccc;
-	box-shadow: none;
-	color: rgba(0, 0, 0, 0.75);
-	display: block;
-	font-family: inherit;
-	font-size: 1rem;
-	height: 2.8125rem;
-	margin: 0 0 1.25rem;
-	padding: .625rem;
-	width: 100%;
-	box-sizing: border-box;
-	transition: border-color .15s linear, background .15s linear;
 }
 
 .form-note {
