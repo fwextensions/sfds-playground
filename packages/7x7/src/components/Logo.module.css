@@ -1,0 +1,54 @@
+.logo {
+	--color: 0deg, 0%;
+	--radius: 100%;
+	--size: 1rem;
+	--spacing: .5;
+	--gap: calc(var(--spacing) * var(--size));
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--gap);
+	padding: 1rem;
+	cursor: pointer;
+
+	.char {
+		display: flex;
+		flex-direction: row;
+		justify-content: center;
+		align-items: center;
+		gap: var(--gap);
+	}
+
+	.bit0, .bit1 {
+		width: var(--size);
+		height: var(--size);
+		border-radius: var(--radius);
+		display: inline-block;
+	}
+
+	.bit0 {
+		background-color: hsl(var(--color), 70%);
+	}
+
+	.bit1 {
+		background-color: hsl(var(--color), 40%);
+		vertical-align: top;
+	}
+
+	&:hover {
+		background-color: #f6f6f6;
+		border-radius: 1rem;
+	}
+
+	&:active {
+		background-color: #eee;
+	}
+
+	&.ltr {
+		flex-direction: row;
+
+		.char {
+			flex-direction: column;
+		}
+	}
+}
