@@ -1,9 +1,18 @@
 .logo {
 	--color: 0deg, 0%;
+	--light0: 70%;
+	--light1: 40%;
+	--color0: hsl(var(--color), var(--light0));
+	--color1: hsl(var(--color), var(--light1));
+	--fill0: var(--color0);
+	--fill1: var(--color1);
+	--border0: none;
+	--border1: none;
 	--radius: 100%;
 	--size: 1rem;
-	--spacing: .5;
+	--spacing: .35;
 	--gap: calc(var(--spacing) * var(--size));
+
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -27,12 +36,13 @@
 	}
 
 	.bit0 {
-		background-color: hsl(var(--color), 70%);
+		background-color: var(--fill0);
+		border: var(--border0);
 	}
 
 	.bit1 {
-		background-color: hsl(var(--color), 40%);
-		vertical-align: top;
+		background-color: var(--fill1);
+		border: var(--border1);
 	}
 
 	&:hover {

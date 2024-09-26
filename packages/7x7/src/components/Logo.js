@@ -1,3 +1,5 @@
+"use client";
+
 import html2canvas from "html2canvas";
 import styles from "./Logo.module.css";
 import { useRef } from "react";
@@ -5,7 +7,8 @@ import { useRef } from "react";
 async function copyElementAsImage(
 	element)
 {
-	const canvas = await html2canvas(element, { scale: 1.5 });
+		// make the canvas background transparent
+	const canvas = await html2canvas(element, { scale: 1.5, backgroundColor: null });
 
 	canvas.toBlob((blob) => {
 		const item = new ClipboardItem({ "image/png": blob });
@@ -35,6 +38,7 @@ function Bit({
 function Char({
 	char })
 {
+		// only show the low order 7 bits, for the 7x7 theme
 	const bits = charToBinaryArray(char).slice(1);
 
 	return (
