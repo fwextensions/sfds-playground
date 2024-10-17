@@ -1,5 +1,10 @@
 import { panelGroup } from "./panelGroup.js";
+import { table } from "./table.js";
 
+const Handlers = {
+	panelGroup,
+	table,
+};
 const TableInputTrue = {
 	tableView: true,
 	input: true,
@@ -69,6 +74,9 @@ const ComponentProperties = [
 	["columns",
 		TableInputFalse
 	],
+	["textarea", {
+		autoExpand: true,
+	}],
 ];
 const ComponentDefaults = ComponentProperties.reduce((result, [key, props]) => ({
 	...result,
@@ -80,7 +88,6 @@ const ComponentDefaults = ComponentProperties.reduce((result, [key, props]) => (
 		// we don't want to add any defaults to the form, but we do want it in this
 		// hash so its components array gets handled in processComponent() below
 	form: {},
-	panelGroup: {}
 });
 
 export function processComponent(
@@ -90,9 +97,11 @@ export function processComponent(
 	const { type, key, label, placeholder, components, columns } = data;
 	const { uniqueKey } = context;
 	const defaults = ComponentDefaults[type || (data.tag && "htmlelement")];
+	const handler = Handlers[type];
 
-	if (!defaults) {
-		throw new Error(`Unknown component type: ${type}`);
+	if (!defaults && !handler) {
+		return null;
+//		throw new Error(`Unknown component type: ${type}`);
 	}
 
 	const component = {
@@ -100,8 +109,8 @@ export function processComponent(
 		...data,
 	};
 
-	if (type === "panelGroup") {
-		return panelGroup(component, context);
+	if (handler) {
+		return handler(component, context);
 	} else if (type !== "form") {
 		component.key = uniqueKey(key || label || placeholder || component.title || component.tag);
 	}
