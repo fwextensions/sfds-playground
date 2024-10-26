@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+
+	<style>
+		gmp-map {
+			width: 100%;
+			height: 40em;
+		}
+	</style>
+
+	<script type="module" src="https://unpkg.com/@googlemaps/extended-component-library"></script>
+	<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+	<script type="module" src="https://unpkg.com/@googlemaps/map-loader/dist/index.min.js"></script>
+
+	<title>DPW Street Vending</title>
+</head>
+
+<body>
+
+<!-- Configure and load the Maps JS SDK with your API key -->
+<gmpx-api-loader key="AIzaSyBrGkLrApnT0cAxp7q0nbR4gLz5TKS-hFA"></gmpx-api-loader>
+
+<!--
+<gmpx-split-layout>
+  <gmpx-place-overview slot="fixed" place="ChIJ39Y-tdg1fYcRQcZcBb499do"></gmpx-place-overview>
+  <gmp-map slot="main" center="43.880,-103.459" zoom="10" map-id="DEMO_MAP_ID">
+    <gmp-advanced-marker position="43.880,-103.459"></gmp-advanced-marker>
+  </gmp-map>
+-->
+	<gmp-map id="map" map-id="map" center="37.80731,-122.40625" zoom="17">
+		<gmp-advanced-marker position="37.807703294736015, -122.4067387288946"></gmp-advanced-marker>
+<!--
+		<google-map-marker position="37.807703294736015, -122.4067387288946"
+		title="derp"></google-map-marker>
+-->
+	</gmp-map>
+<!--
+</gmpx-split-layout>
+-->
+
+	<script type="module">
+		document.addEventListener("DOMContentLoaded", () => {
+			const map = document.querySelector("#map");
+
+			console.log(map, map.innerMap);
+
+			map.innerMap.setCenter({ lat: 37.7749, lng: -122.4194 });
+		});
+	</script>
+</body>
+
+</html>

@@ -1,0 +1,160 @@
+<h3>Apply to <strong id="listingName"></strong></h3>
+<ol>
+	<li>
+		Fill out your information on this form
+	</li>
+	<li>
+		Follow the link to Box.com to upload your completed application
+	</li>
+	<li>
+		Upload your completed PDF application and all documents to Box.com
+	</li>
+</ol>
+
+<h3><strong>
+	You're not done yet
+</strong></h3>
+<p>
+	On the next page, follow the link to Box.com to upload your completed PDF application within 30 minutes.
+</p>
+
+<script>
+	(function () {
+		const $ = (id) => document.getElementById(id) ?? {};
+		const [form] = document.forms;
+
+		if (form) {
+			const data = Object.fromEntries(new FormData(form));
+
+			$("listingName").textContent = data.tfa_302;
+		}
+	})();
+</script>
+
+
+<!-- custom code: START -->
+<div>
+	<span style="text-align: left;"><img alt="San Francisco City Seal" src="https://www.sf.gov/sites/default/files/styles/default/public/2024-05/MOHCD%20Logo_2018_small.jpg?itok=LWVIpMvg style="></span>
+	<span style="float: right; text-align: right;"><br><strong>First Come, First Served<br>Ownership Application</strong></span>
+	<hr style="clear: both; color: #D3D3D3; background-color: #D3D3D3; height: 3px; border: none; margin: 1em 0 .5em 0;">
+</div>
+<div style="display:flex;flex-direction:row;justify-content:flex-end;gap:.3em;font-size:smaller;align-items:baseline;">Language: <span id="google_translate_element" style="display: inline-block"></span></div>
+
+<div style="color:red">
+<noscript>For full functionality of this page it is necessary to <a href="http://www.enable-javascript.com/"> enable JavaScript.</a></noscript>
+</div>
+
+<script type="text/javascript">
+	function googleTranslateElementInit() {
+		new google.translate.TranslateElement({ pageLanguage: "en" }, "google_translate_element");
+	}
+</script>
+<script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" type="text/javascript"></script>
+
+<script type="text/javascript">
+	wFORMS.behaviors.paging.MESSAGES = {
+		CAPTION_NEXT: "Start application",
+		CAPTION_PREVIOUS: "Go back"
+	};
+</script>
+
+<script type="text/javascript">
+	function showNow() {
+		var currentdate = new Date();
+		var currentHours = currentdate.getHours();
+		var currentAMPM = "am";
+		if (currentHours > 11) {
+			currentAMPM = "pm";
+		}
+		if (currentHours > 12) {
+			currentHours = currentHours - 12;
+		}
+		if (currentHours == 0) {
+			currentHours = 12;
+		}
+		var datetime = currentdate.getMonth() + 1 + "/" + currentdate.getDate()
+			+ "/" + currentdate.getFullYear() + " "
+			+ currentHours + ":"
+			+ ("0" + currentdate.getMinutes()).slice(-2) + ":" + ("0" + currentdate.getSeconds()).slice(-2) + " " +
+			currentAMPM;
+		return datetime;
+	}
+
+	function formatStartDateTime(appStartFromSF) {
+		var enteredValue = new Date(appStartFromSF);
+		var theHours = enteredValue.getHours();
+		var ampm = "am";
+		if (theHours > 11) {
+			ampm = "pm";
+		}
+		if (theHours > 12) {
+			theHours = theHours - 12;
+		}
+		if (theHours == 0) {
+			theHours = 12;
+		}
+		var readableStartDateTime = enteredValue.getMonth() + 1 + "/" + enteredValue.getDate()
+			+ "/" + enteredValue.getFullYear() + " "
+			+ theHours + ":"
+			+ ("0" + enteredValue.getMinutes()).slice(-2) + ":" + ("0" + enteredValue.getSeconds()).slice(-2) + " " + ampm;
+		return readableStartDateTime;
+	}
+
+	function checkAvailability(appStartForCalc) {
+		var availability = "1";
+		var curDate = new Date();
+		var appStart = new Date(appStartForCalc);
+		if (curDate.getTime() < appStart.getTime()) {
+			availability = "0";
+		}
+console.log("availability", availability);
+		return availability;
+	}
+
+	function getBoxURL(otherNotes) {
+		const url = otherNotes.match(/href="(https:\/\/sfmohcd.app.box.com\/[^"]+)"/i)?.[1] ?? "https://account.box.com/login";
+console.log("url", url);
+
+		return url;
+//		return otherNotes.match(/href="(https:\/\/sfmohcd.app.box.com\/[^"]+)"/i)?.[1] ?? "https://account.box.com/login";
+	}
+</script>
+<!-- custom code: END -->
+
+
+
+<!-- thank you page source: START -->
+<div>
+	<span style="text-align: left;"><img alt="San Francisco City Seal" src="https://www.sf.gov/sites/default/files/styles/default/public/2024-05/MOHCD%20Logo_2018_small.jpg?itok=LWVIpMvg style="></span>
+	<span style="float: right; text-align: right;"><br><strong>First Come, First Served<br>Ownership Application</strong></span>
+	<hr style="clear: both; color: #D3D3D3; background-color: #D3D3D3; height: 3px; border: none; margin: 1em 0 .5em 0;">
+</div>
+
+<h1 style="margin: 2em 0;">
+	To finish applying, you must upload your completed PDF application
+</h1>
+
+<p>
+	Follow the link to upload your PDF application within 30 minutes.
+</p>
+<p>
+	<a href="%%tfa_304%%">Upload your application now</a>
+</p>
+<p style="font-size: smaller;">
+	Note: This link continues to Box.com. This is a safe and secure way to send us your application.
+</p>
+
+<h2>
+	We review applications in the order they come in
+</h2>
+<p>
+	If you do not upload within 30 minutes you will get a new place in line based on the time and date we receive your completed application.
+</p>
+
+<h2>
+	What happens next
+</h2>
+<p>
+	We will email you your place in line within 2 business days.
+</p>
+<!-- thank you page source: END -->

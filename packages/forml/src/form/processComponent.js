@@ -1,9 +1,11 @@
 import { panelGroup } from "./panelGroup.js";
 import { table } from "./table.js";
+import { serviceOffering } from "./serviceOffering.js";
 
 const Handlers = {
 	panelGroup,
 	table,
+	serviceOffering,
 };
 const TableInputTrue = {
 	tableView: true,

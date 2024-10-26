@@ -1,0 +1,325 @@
+{
+  "key": "fieldsetBAN",
+  "conditional": {
+    "show": true,
+    "when": "banNumber",
+    "eq": "yes"
+  },
+  "type": "fieldset",
+  "label": "",
+  "input": false,
+  "tableView": false,
+  "components": [
+    {
+      "label": "Your business account number (BAN)",
+      "description": "Your BAN is a 7-digit number. If you don't know it, <a href=\"https://data.sfgov.org/Economy-and-Community/Registered-Business-Locations-San-Francisco/g8m3-pdis/data\" target=_new>find your BAN</a>.",
+      "inputMask": "9999999",
+      "tableView": true,
+      "validate": {
+        "required": true,
+        "customMessage": "You must enter your 7-digit BAN.",
+        "minLength": 7,
+        "maxLength": 7
+      },
+      "key": "searchBAN",
+      "type": "textfield",
+      "input": true
+    },
+    {
+      "label": "Verify your BAN",
+      "action": "custom",
+      "showValidations": false,
+      "customClass": "mt-1",
+      "tableView": false,
+      "key": "lookUpBan",
+      "type": "button",
+      "custom": "// reset project address fields\nwindow.formio_sfds_BAN_lookup.resetDataFields();\n// do lookup\nif(data.searchBAN.length == 7){\n  getBANItems();\n}else{\n  showBANMessage('error');\n}\n\nfunction getBANItems(){\n  fetch('https://sfds-dev.apigee.net/v1.1.0/TTX/BAN?apikey=EzwykOQfqLp745obyHsFIuh7mGVZaX5h', {\n\t  method: 'post',\n\t  body: JSON.stringify({\n\t\t  BAN: data.searchBAN\n\t  })\n  })\n  .then(response => response.json())\n  .then(respData => {\n    if(respData && respData.length > 0){\n        // response ok\n        dataItems = respData;\n        processBANItems(dataItems);\n\n        instance.triggerChange();\n        \n    }else{\n      // NOT_FOUND\n\t\tshowBANMessage('error');\n    }\n    \n  }).catch((error) => {\n   console.log(error);\n  showBANMessage('error');\n  }).finally(() => {\n    // finally\n  });\n}\n\nfunction processBANItems(BANItems){\n  console.log('BANItems.length: '+BANItems.length)\n  // processBANItems\n  window.formio_sfds_BAN_lookup.setValue('BANDataItems', JSON.stringify(BANItems));\n  if(BANItems.length > 1){\n    showBANMessage('multiple');\n  }else{\n    showBANMessage('single');\n  }\n  window.formio_sfds_BAN_lookup.updateDataFields(BANItems[0]);\n}\n\nfunction showBANMessage(msg){\n  // possible msg: single, multiple, error\n      //var BANMessage = utils.getComponent(form.components[2].components[0].components, 'BANMessage');\n  var BANMessage = utils.getComponent(form.components, 'BANMessage');\n  BANMessage.setValue(msg);\n  BANMessage.triggerChange();\n}",
+      "input": true
+    },
+    {
+      "label": "HTML",
+      "tag": "div",
+      "attrs": [
+        {
+          "attr": "",
+          "value": ""
+        }
+      ],
+      "content": "<div role=\"alert\" class=\"d-flex flex-items-center bg-green-1 p-3 mt-5 mb-4\">\n  <span class=\"fg-green-4 mr-2\" data-icon=\"check\"></span>\n  <span>We found the business for your BAN.</span>\n</div>\n",
+      "refreshOnChange": false,
+      "key": "html8",
+      "customConditional": "show = false;\nif(data.BANDataItems){\n  var numBiz = JSON.parse(data.BANDataItems).length;\n  if(numBiz < 2){\n    show = true;\n  }\n}",
+      "type": "htmlelement",
+      "input": false,
+      "tableView": false
+    },
+    {
+      "label": "HTML",
+      "tag": "div",
+      "attrs": [
+        {
+          "attr": "",
+          "value": ""
+        }
+      ],
+      "content": "<div role=\"alert\" class=\"d-flex flex-items-center bg-blue-1 p-3 mt-5 mb-4\">\n  <span class=\"fg-blue-4 mr-2\" data-icon=\"alert\"></span>\n  <span>We found the business for your BAN but your business has more than 1 address.</span>\n</div>",
+      "refreshOnChange": false,
+      "key": "html9",
+      "customConditional": "show = false;\nif(data.BANDataItems){\n  var numBiz = JSON.parse(data.BANDataItems).length;\n  if(numBiz > 1){\n    show = true;\n  }\n}",
+      "type": "htmlelement",
+      "input": false,
+      "tableView": false
+    },
+    {
+      "label": "HTML",
+      "tag": "div",
+      "attrs": [
+        {
+          "attr": "",
+          "value": ""
+        }
+      ],
+      "content": "<div role=\"alert\" class=\"d-flex flex-items-center bg-red-1 p-3 mt-5 mb-4\">\n  <span class=\"fg-red-4 mr-2\" data-icon=\"delete\"></span>\n  <span>We cannot find that BAN. <a href=\"https://data.sfgov.org/Economy-and-Community/Registered-Business-Locations-San-Francisco/g8m3-pdis/data\" target=_new>Find your BAN</a>.</span>\n</div>",
+      "refreshOnChange": false,
+      "key": "html6",
+      "conditional": {
+        "show": true,
+        "when": "BANMessage",
+        "eq": "error"
+      },
+      "type": "htmlelement",
+      "input": false,
+      "tableView": false
+    },
+    {
+      "label": "Choose the address of your business",
+      "optionsLabelPosition": "right",
+      "inline": false,
+      "tableView": false,
+      "values": [
+        {
+          "label": "",
+          "value": "none",
+          "shortcut": ""
+        }
+      ],
+      "dataType": "string",
+      "customDefaultValue": "value = data.LIN;",
+      "validate": {
+        "required": true,
+        "custom": "if(data.BANDataItems){\n  dataItems = JSON.parse(data.BANDataItems);\n  bizValues = _.map(dataItems, function(x){\n          return {\"label\":x.StreetAddress + \" - \" + x.DBAName, \"value\":x.LIN}\n        });\n  // set value to bizValues\n  instance.component.values = bizValues;\n  \n  \n  if(!data.chooseBusiness){\n    value = bizValues[0][\"value\"];\n  }\n\n  instance.on('change',setLINAddress);\n  instance.triggerRedraw();\n}\n\nfunction setLINAddress(){\n\t  dataItems = JSON.parse(data.BANDataItems);\n      dataItems.forEach((item, index) => {\n\t\t  if (item[\"LIN\"] == instance.getValue()) window.formio_sfds_BAN_lookup.updateDataFields(item)\n\t  });\n}"
+      },
+      "key": "chooseBusiness",
+      "customConditional": "show = false;\nif(data.BANDataItems){\n  var numBiz = JSON.parse(data.BANDataItems).length;\n  if(numBiz > 0){\n    show = true;\n  }\n}",
+      "type": "radio",
+      "input": true
+    },
+    {
+      "label": "BAN Message",
+      "persistent": false,
+      "key": "BANMessage",
+      "type": "hidden",
+      "input": true,
+      "tableView": false
+    },
+    {
+      "customClass": "d-none",
+      "key": "fieldsetProjectBAN",
+      "type": "fieldset",
+      "label": "",
+      "input": false,
+      "tableView": false,
+      "components": [
+        {
+          "label": "Ban Data Items",
+          "persistent": false,
+          "key": "BANDataItems",
+          "type": "hidden",
+          "input": true,
+          "tableView": false
+        },
+        {
+          "label": "BAN Lookup Method",
+          "persistent": false,
+          "customDefaultValue": "value = \"lookup_by_BAN\"",
+          "key": "banLookupMethod",
+          "type": "hidden",
+          "input": true,
+          "tableView": false
+        },
+        {
+          "label": "BAN Lookup Functions",
+          "persistent": false,
+          "customDefaultValue": "(function(_w, _d, undefined){\n  _w.formio_sfds_BAN_lookup = {\n    updateDataFields: function(BANItem){\n      var map = {\n        'BAN' : 'BAN',\n\t\t'OWNERS' : 'OWNERS',\n\t\t'BusinessName' : 'BusinessName',\n\t\t'DBAName' : 'DBAName',\n\t\t'StreetAddress' : 'StreetAddress',\n\t\t'City' : 'City',\n\t\t'State' : 'State',\n\t\t'PostalCd' : 'PostalCd',\n\t\t'LIN' : 'LIN',\n\t\t'BusstartDate' : 'BusstartDate',\n\t\t'BusEndDate' : 'BusEndDate',\n\t\t'LocstartDate' : 'LocstartDate',\n\t\t'LocEndDate' : 'LocEndDate',\n\t\t'MailingAddress' : 'MailingAddress',\n\t\t'MailCityStateZip' : 'MailCityStateZip',\n\t\t'LocationNumber' : 'LocationNumber',\n\t\t'OrgType' : 'OrgType',\n\t\t'licclasscodes' : 'licclasscodes',\n\t\t'fyfind' : 'fyfind',\n\t\t'pointlocation' : 'pointlocation'\n      }\n      for(var prop in map){\n        var value = '';\n        if (prop == 'pointlocation') {\n          if(BANItem.hasOwnProperty(prop)) value = JSON.stringify(BANItem[prop]);\n        } else {\n          if(BANItem.hasOwnProperty(prop)) value = BANItem[prop];\n        }\n        this.setValue(map[prop], value);\n      }\n    },\n    resetDataFields: function(){\n      data[\"BANDataItems\"] = \"\"\n      var map = {\n        'BAN' : 'BAN',\n\t\t'OWNERS' : 'OWNERS',\n\t\t'BusinessName' : 'BusinessName',\n\t\t'DBAName' : 'DBAName',\n\t\t'StreetAddress' : 'StreetAddress',\n\t\t'City' : 'City',\n\t\t'State' : 'State',\n\t\t'PostalCd' : 'PostalCd',\n\t\t'LIN' : 'LIN',\n\t\t'BusstartDate' : 'BusstartDate',\n\t\t'BusEndDate' : 'BusEndDate',\n\t\t'LocstartDate' : 'LocstartDate',\n\t\t'LocEndDate' : 'LocEndDate',\n\t\t'MailingAddress' : 'MailingAddress',\n\t\t'MailCityStateZip' : 'MailCityStateZip',\n\t\t'LocationNumber' : 'LocationNumber',\n\t\t'OrgType' : 'OrgType',\n\t\t'licclasscodes' : 'licclasscodes',\n\t\t'fyfind' : 'fyfind',\n\t\t'pointlocation' : 'pointlocation'\n      }\n      for(var prop in map){\n        var value = '';\n        this.setValue(map[prop], value);\n      }\n    },\n    setValue: function(key, value){\n      var el = document.querySelector('.formio-component-'+key+' input');\n      if(el){\n        el.value = value;\n        data[key] = value;\n      }else{\n        console.log('Cannot setValue of component '+key);\n      }\n    }\n  }\n})(window, document);",
+          "key": "banLookupFunctions",
+          "type": "hidden",
+          "input": true,
+          "tableView": false
+        },
+        {
+          "label": "BAN",
+          "disabled": true,
+          "tableView": true,
+          "validate": {
+            "required": true
+          },
+          "key": "BAN",
+          "type": "textfield",
+          "input": true
+        },
+        {
+          "label": "Owners",
+          "disabled": true,
+          "tableView": true,
+          "key": "OWNERS",
+          "type": "textfield",
+          "input": true
+        },
+        {
+          "label": "Business Name",
+          "disabled": true,
+          "tableView": true,
+          "key": "BusinessName",
+          "type": "textfield",
+          "input": true
+        },
+        {
+          "label": "Your DBA Business name",
+          "disabled": true,
+          "tableView": true,
+          "key": "DBAName",
+          "type": "textfield",
+          "input": true
+        },
+        {
+          "label": "Address",
+          "disabled": true,
+          "tableView": true,
+          "key": "StreetAddress",
+          "type": "textfield",
+          "input": true
+        },
+        {
+          "label": "City",
+          "disabled": true,
+          "tableView": true,
+          "key": "City",
+          "type": "textfield",
+          "input": true
+        },
+        {
+          "label": "State",
+          "disabled": true,
+          "tableView": true,
+          "key": "State",
+          "type": "textfield",
+          "input": true
+        },
+        {
+          "label": "Zip",
+          "disabled": true,
+          "tableView": true,
+          "key": "PostalCd",
+          "type": "textfield",
+          "input": true
+        },
+        {
+          "label": "Your Location ID Number (LIN)",
+          "disabled": true,
+          "tableView": true,
+          "key": "LIN",
+          "type": "textfield",
+          "input": true
+        },
+        {
+          "label": "Business start date",
+          "disabled": true,
+          "tableView": true,
+          "key": "BusstartDate",
+          "type": "textfield",
+          "input": true
+        },
+        {
+          "label": "Business end date",
+          "disabled": true,
+          "tableView": true,
+          "key": "BusEndDate",
+          "type": "textfield",
+          "input": true
+        },
+        {
+          "label": "Location Start Date",
+          "disabled": true,
+          "tableView": true,
+          "key": "LocstartDate",
+          "type": "textfield",
+          "input": true
+        },
+        {
+          "label": "Location end date",
+          "disabled": true,
+          "tableView": true,
+          "key": "LocEndDate",
+          "type": "textfield",
+          "input": true
+        },
+        {
+          "label": "Mailing address",
+          "disabled": true,
+          "tableView": true,
+          "key": "MailingAddress",
+          "type": "textfield",
+          "input": true
+        },
+        {
+          "label": "Mail city state zip",
+          "disabled": true,
+          "tableView": true,
+          "key": "MailCityStateZip",
+          "type": "textfield",
+          "input": true
+        },
+        {
+          "label": "Location number",
+          "disabled": true,
+          "tableView": true,
+          "key": "LocationNumber",
+          "type": "textfield",
+          "input": true
+        },
+        {
+          "label": "Org type",
+          "disabled": true,
+          "tableView": true,
+          "key": "OrgType",
+          "type": "textfield",
+          "input": true
+        },
+        {
+          "label": "licclasscodes",
+          "disabled": true,
+          "tableView": true,
+          "key": "licclasscodes",
+          "type": "textfield",
+          "input": true
+        },
+        {
+          "label": "fyfind",
+          "disabled": true,
+          "tableView": true,
+          "key": "fyfind",
+          "type": "textfield",
+          "input": true
+        },
+        {
+          "label": "pointlocation",
+          "disabled": true,
+          "tableView": true,
+          "key": "pointlocation",
+          "type": "textfield",
+          "input": true
+        }
+      ]
+    }
+  ]
+}

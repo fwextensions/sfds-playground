@@ -34,6 +34,11 @@ export default function Home() {
 					"--light0": "78%",
 					"--light1": "46%"
 				}} />
+				<Logo string="49sq.mi" style={{
+					"--color": "4deg, 62%",
+					"--light0": "78%",
+					"--light1": "46%"
+				}} />
 			</main>
     </div>
   );
