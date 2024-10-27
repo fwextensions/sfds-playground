@@ -4,3 +4,6 @@
 **/node_modules
 **/To do.md
 **/out
+**/dist
+**/.vscode
+*~

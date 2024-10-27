@@ -17,6 +17,7 @@ const TableInputFalse = {
 };
 const ComponentProperties = [
 	["panel", {
+		...TableInputFalse,
 		collapsible: false,
 	}],
 	["textfield"],
@@ -61,7 +62,7 @@ const ComponentProperties = [
 		widget: "html5",
 		searchEnabled: false,
 	}],
-	["fieldSet",
+	["fieldset",
 		TableInputFalse
 	],
 	["editgrid",

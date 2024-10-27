@@ -1,3 +1,6 @@
+import { stringify } from "yaml";
+import clipboard from "clipboardy";
+
 const text = `
 foodAccess\tNon-housing basic needs\ton-site programs and services that ensure access to food\tworld kitchen, senior meals on wheels, CalFresh application
 utilityAssistance\tNon-housing basic needs\ton-site programs and services that address utility financial assistance\tMonthly stipend, CARE, FERA
@@ -35,14 +38,15 @@ for (const row of rows) {
 		serviceOffering.examples = examples;
 	}
 
-	if (section !== fieldSet?.label) {
+	if (section !== fieldSet?.legend) {
 		if (fieldSet) {
 			components.push(fieldSet);
 		}
 
 		fieldSet = {
-			type: "fieldSet",
-			label: section,
+			type: "fieldset",
+			legend: section,
+			description: "this is a description",
 			components: [],
 		};
 	}
@@ -52,4 +56,4 @@ for (const row of rows) {
 
 components.push(fieldSet);
 
-console.log(JSON.stringify({ components }, null, 2));
+clipboard.writeSync(stringify({ components }));

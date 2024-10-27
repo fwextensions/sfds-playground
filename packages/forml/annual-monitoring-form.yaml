@@ -11,93 +11,102 @@ components:
           .service-grid {
             padding-left: 65px;
           }
+
           .service-grid .datagrid-table {
             width: auto;
             margin-bottom: 60px;
             table-layout: fixed;
           }
 
-      - type: fieldSet
-        label: Non-housing basic needs
-        components:
-        - type: serviceOffering
-          key: foodAccess
-          name: on-site programs and services that ensure access to food
-          examples: world kitchen, senior meals on wheels, CalFresh application
-        - type: serviceOffering
-          key: utilityAssistance
-          name: on-site programs and services that address utility financial assistance
-          examples: Monthly stipend, CARE, FERA
-        - type: serviceOffering
-          key: transportSupport
-          name: on-site programs and services that address transportation needs
-          examples: GoGoGrandparent, Clipper Card Assistance, Muni Tokens for Residents,
-            On-site shuttle/Paratransit
-        - type: serviceOffering
-          key: basicNeedsSupport
-          name: on-site programs and services that address non-housing basic needs
-          examples: Housekeeping, Annual Dump Day
+          .service-grid .datagrid-table th {
+            vertical-align: bottom;
+          }
 
-      - type: fieldSet
-        label: Community Building
+      - type: fieldset
+        legend: Non-housing basic needs
+        description: >
+          In this section please report on program and services that address non-housing basic needs. Examples includes but not limited to food pantry, transportation support, utility financial assistance.
         components:
-        - type: serviceOffering
-          key: socialEventsCommunity
-          name: on-site social events and gatherings that promote community-building
-          examples: Kwanzaa dinner, Knitting Korner, Puzzles and pizza
-        - type: serviceOffering
-          key: exerciseGroupClasses
-          name: on-site group exercise classes
-          examples: Chair yoga, Walking group, Zumba
-        - type: serviceOffering
-          key: enrichmentLearning
-          name: on-site enrichment classes
-          examples: Learn to garden, Walking history tour of SOMA
-        - type: serviceOffering
-          key: communityProgramming
-          name: on-site community-building programming
-
-      - type: fieldSet
-        label: Training and Education
+          - type: serviceOffering
+            key: foodAccess
+            name: on-site programs and services that ensure access to food
+            examples: world kitchen, senior meals on wheels, CalFresh application
+          - type: serviceOffering
+            key: utilityAssistance
+            name: on-site programs and services that address utility financial assistance
+            examples: Monthly stipend, CARE, FERA
+          - type: serviceOffering
+            key: transportSupport
+            name: on-site programs and services that address transportation needs
+            examples: GoGoGrandparent, Clipper Card Assistance, Muni Tokens for Residents,
+              On-site shuttle/Paratransit
+          - type: serviceOffering
+            key: basicNeedsSupport
+            name: on-site programs and services that address non-housing basic needs
+            examples: Housekeeping, Annual Dump Day
+      - type: fieldset
+        legend: Community Building
+        description: >
+          In this section please report on program and services that promote connection and belonging among residents.
         components:
-        - type: serviceOffering
-          key: educationalServices
-          name: on-site educational services
-          examples: GED classes, ESL classes
-        - type: serviceOffering
-          key: lifeSkillsTraining
-          name: on-site life-skills training
-          examples: Learn the Web
-        - type: serviceOffering
-          key: jobSupportTraining
-          name: on-site employment assistance and job trainings
-          examples: Job placement and support, Resume assistance
-
-      - type: fieldSet
-        label: Service coordination and linkages
+          - type: serviceOffering
+            key: socialEventsCommunity
+            name: on-site social events and gatherings that promote community-building
+            examples: Kwanzaa dinner, Knitting Korner, Puzzles and pizza
+          - type: serviceOffering
+            key: exerciseGroupClasses
+            name: on-site group exercise classes
+            examples: Chair yoga, Walking group, Zumba
+          - type: serviceOffering
+            key: enrichmentLearning
+            name: on-site enrichment classes
+            examples: Learn to garden, Walking history tour of SOMA
+          - type: serviceOffering
+            key: communityProgramming
+            name: on-site community-building programming
+      - type: fieldset
+        legend: Training and Education
+        description: >
+          In this section please report on program and services that promote education, skill-building, digital literacy, and workforce readiness.
         components:
-        - type: serviceOffering
-          key: individualCaseManagement
-          name: on-site individual case management
-        - type: serviceOffering
-          key: mentalHealthServices
-          name: on-site mental health services
-        - type: serviceOffering
-          key: outpatientCare
-          name: on-site outpatient services
-        - type: serviceOffering
-          key: substanceAbuseSupport
-          name: on-site substance abuse services
-        - type: serviceOffering
-          key: serviceCoordinationOther
-          name: other on-site service coordination and linkages
-
-      - type: fieldSet
-        label: Other services
+          - type: serviceOffering
+            key: educationalServices
+            name: on-site educational services
+            examples: GED classes, ESL classes
+          - type: serviceOffering
+            key: lifeSkillsTraining
+            name: on-site life-skills training
+            examples: Learn the Web
+          - type: serviceOffering
+            key: jobSupportTraining
+            name: on-site employment assistance and job trainings
+            examples: Job placement and support, Resume assistance
+      - type: fieldset
+        legend: Service coordination and linkages
+        description: this is a description
         components:
-        - type: serviceOffering
-          key: otherUnlistedServices
-          name: other on-site services, not listed above
+          - type: serviceOffering
+            key: individualCaseManagement
+            name: on-site individual case management
+          - type: serviceOffering
+            key: mentalHealthServices
+            name: on-site mental health services
+          - type: serviceOffering
+            key: outpatientCare
+            name: on-site outpatient services
+          - type: serviceOffering
+            key: substanceAbuseSupport
+            name: on-site substance abuse services
+          - type: serviceOffering
+            key: serviceCoordinationOther
+            name: other on-site service coordination and linkages
+      - type: fieldset
+        legend: Other services
+        description: this is a description
+        components:
+          - type: serviceOffering
+            key: otherUnlistedServices
+            name: other on-site services, not listed above
 
   - type: panel
     title: Page 1
