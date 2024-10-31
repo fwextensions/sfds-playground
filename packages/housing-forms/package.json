@@ -1,0 +1,14 @@
+{
+  "name": "housing-forms",
+  "version": "0.0.0",
+  "description": "",
+  "private": true,
+  "main": "extract-fields.js",
+  "scripts": {
+    "services": "node generate-services-list.js"
+  },
+  "dependencies": {
+    "clipboardy": "^4.0.0",
+    "yaml": "^2.6.0"
+  }
+}
