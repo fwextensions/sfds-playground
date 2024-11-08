@@ -6,6 +6,7 @@ const TypeMappings = {
 	checkboxes: "selectboxes",
 	dropdown: "select",
 	phone: "phoneNumber",
+	block_of_text: "htmlelement"
 };
 
 const uniqueKey = createUniqueKeyFn();
@@ -14,8 +15,8 @@ function convertFields(
 	fields)
 {
 	return fields.map((field) => {
-		const { field_type, hasDependentShortcuts, ...rest } = field;
-		const type = TypeMappings[field_type] || field_type;
+		const { field_type, id, hasDependentShortcuts, conditions, ...rest } = field;
+		let type = TypeMappings[field_type] || field_type;
 
 		if (rest.options) {
 			const values = rest.options.map(({ label, value = uniqueKey(label) }) => ({
@@ -30,6 +31,35 @@ function convertFields(
 			} else {
 				rest.values = values;
 			}
+		} else if (type === "htmlelement" && rest.description) {
+			rest.content = rest.description;
+			delete rest.description;
+			delete rest.label;
+		} else if (type === "section_break") {
+			const { label, description } = rest;
+
+			type = "htmlelement";
+			rest.content = `<h2>${label}</h2>\n` + (description ? `<h3>${description}</h3}` : "");
+			delete rest.label;
+			delete rest.description;
+		}
+
+		if (Array.isArray(conditions) && conditions.length) {
+			if (conditions.length === 1) {
+				const [condition] = conditions;
+
+				if (condition.method === "eq") {
+					rest.conditional = {
+						show: true,
+						when: condition.response_field_id,
+						eq: true,
+					}
+				} else {
+					console.error("Unknown condition", condition, rest);
+				}
+			} else {
+				console.error("Too many conditions", rest);
+			}
 		}
 
 		delete rest.type;
@@ -38,6 +68,7 @@ function convertFields(
 
 		return {
 			type,
+			key: id,
 			...rest,
 		}
 	});
