@@ -1,5 +1,5 @@
 import { processComponent } from "./processComponent.js";
-import { createUniqueKeyFn } from "@/form/string.js";
+import { createUniqueKeyFn } from "./string.js";
 
 const DataGrid = {
 	type: "datagrid",

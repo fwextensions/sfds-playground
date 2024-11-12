@@ -48,14 +48,14 @@ function convertFields(
 			if (conditions.length === 1) {
 				const [condition] = conditions;
 
-				if (condition.method === "eq") {
-					rest.conditional = {
-						show: true,
-						when: condition.response_field_id,
-						eq: true,
-					}
-				} else {
-					console.error("Unknown condition", condition, rest);
+				rest.conditional = {
+					show: true,
+					when: condition.response_field_id,
+					eq: true,
+				}
+
+				if (condition.method !== "eq") {
+					console.error("Forcing condition to eq", condition, rest);
 				}
 			} else {
 				console.error("Too many conditions", rest);

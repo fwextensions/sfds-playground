@@ -1,97 +1,4 @@
-import { panelGroup } from "./panelGroup.js";
-import { table } from "./table.js";
-import { serviceOffering } from "./serviceOffering.js";
-
-const Handlers = {
-	panelGroup,
-	table,
-	serviceOffering,
-};
-const TableInputTrue = {
-	tableView: true,
-	input: true,
-};
-const TableInputFalse = {
-	tableView: false,
-	input: false,
-};
-const ComponentProperties = [
-	["panel", {
-		...TableInputFalse,
-		collapsible: false,
-	}],
-	["textfield"],
-	["email", {
-		validateOn: "blur",
-	}],
-	["phoneNumber", {
-		inputMask: "999-999-9999",
-		validateOn: "blur",
-	}],
-	["number", {
-		delimiter: false,
-		requireDecimal: false,
-		inputFormat: "plain",
-		truncateMultipleSpaces: false,
-		validateOn: "blur",
-	}],
-	["checkbox"],
-	["radio"],
-	["day", {
-		hideInputLabels: true,
-		fields: {
-			day: {
-				placeholder: "Day",
-				hide: false
-			},
-			month: {
-				placeholder: "Month",
-				hide: false
-			},
-			year: {
-				placeholder: "Year",
-				hide: false
-			}
-		},
-	}],
-	["button"],
-	["selectboxes", {
-		inputType: "checkbox",
-	}],
-	["select", {
-		widget: "html5",
-		searchEnabled: false,
-	}],
-	["fieldset",
-		TableInputFalse
-	],
-	["editgrid",
-		TableInputFalse
-	],
-	["htmlelement", {
-			// since we allow just the tag key to be included, make sure the actual
-			// type is specified as well
-		type: "htmlelement",
-		...TableInputFalse,
-	}],
-	["columns",
-		TableInputFalse
-	],
-	["textarea", {
-		autoExpand: true,
-	}],
-];
-const ComponentDefaults = ComponentProperties.reduce((result, [key, props]) => ({
-	...result,
-	[key]: {
-		...TableInputTrue,
-		...props
-	},
-}), {
-		// we don't want to add any defaults to the form, but we do want it in this
-		// hash so its components array gets handled in processComponent() below
-	form: {},
-});
+import { getComponentBase } from "./getComponentBase.js";
 
 export function processComponent(
 	data,
@@ -99,23 +6,30 @@ export function processComponent(
 {
 	const { type, key, label, placeholder, components, columns } = data;
 	const { uniqueKey } = context;
-	const defaults = ComponentDefaults[type || (data.tag && "htmlelement")];
-	const handler = Handlers[type];
+	const base = getComponentBase(data);
 
-	if (!defaults && !handler) {
+	if (!base) {
 		return null;
 //		throw new Error(`Unknown component type: ${type}`);
 	}
 
+	if (typeof base === "function") {
+		return base(data, context);
+	}
+
 	const component = {
-		...defaults,
+		...base,
 		...data,
 	};
 
-	if (handler) {
-		return handler(component, context);
-	} else if (type !== "form") {
-		component.key = uniqueKey(key || label || placeholder || component.title || component.tag);
+	if (type !== "form" && !key) {
+		component.key = uniqueKey(
+			label
+			|| placeholder
+			|| component.title
+			|| component.tag
+			|| component.type
+		);
 	}
 
 	if (label?.endsWith("*")) {
