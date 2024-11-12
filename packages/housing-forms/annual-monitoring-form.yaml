@@ -1,0 +1,321 @@
+title: Annual Monitoring Form
+name: annualMonitoringForm
+type: form
+
+components:
+  - type: panel
+    title: Introduction
+    components:
+      - type: htmlelement
+        tag: article
+        content: >
+          <p>The Mayor’s Office of Housing and Community Development (MOHCD) is pleased to announce the availability of the Senior
+              Restricted Annual Monitoring Report (SR-AMR) form for Fiscal Year 2023-2024 (FY 23-24)</p>
+          <p>The SR-AMR was newly added to the Annual Monitoring Report (AMR) cycle as a supplemental Senior Restricted Annual
+              Monitoring Report (SR-AMR) for buildings that are contractually obligated to serve seniors, age 55 and older. See
+              Section 1 below for more information. </p>
+          <h2 id="section-1">Section 1</h2>
+          <h3>Senior Restricted Annual Monitoring Report (SR&#8209;AMR)</h3>
+          <p>In accordance with the City’s commitment to racial equity and to San Francisco residents, MOHCD will be conducting
+              periodic program evaluations that will include surveys, self-assessments and reporting on impacts and outcomes of its
+              senior restricted, affordable housing developments. Beginning with Fiscal Year 2023-2024 (FY 23-24) AMR cycle,
+              sponsors of affordable housing developments that serve seniors are now required to submit a Senior Restricted Annual
+              Monitoring Report (SR-AMR).</p>
+          <p>Data from the SR-AMR will enable MOHCD to evaluate services programs at senior housing developments and to recommend
+              and make improvements that may help seniors to sustain their housing for as long as they are able to live
+              independently, with or without a caregiver.</p>
+          <p>Through the SR-AMR, Sponsors must provide information about resident tenure, non-housing basic needs,
+              community-building, service coordination and linkages and other services. This requirement is only applicable to
+              affordable housing projects that are contractually obligated to serve seniors aged 55 years or older. Due to the
+              status of your building as senior restricted or having senior-restricted units, you are required to submit the SR-AMR.
+              The SR-AMR report will be due on December 31st, 2024, for the period 7/1/2023-6/30/2024.</p>
+          <p>The SR-AMR report collects data on 7 service areas:</p>
+          <ol>
+              <li>Resident Tenure</li>
+              <li>Annual resident assessments</li>
+              <li>Community-building activities</li>
+              <li>Non-housing basic needs</li>
+              <li>Training and skill development</li>
+              <li>Service coordination and linkages</li>
+              <li>Other services</li>
+              <li>Program Learnings</li>
+          </ol>
+          <p>Responding to the SR-AMR will require input of the following data points:</p>
+          <ol type="a">
+            <li># of late and eviction notices</li>
+            <li>number of surveys distributed</li>
+            <li>the frequency, name of service, # of attendees, for service areas 2-6.</li>
+          </ol>
+          <p>Below is a guide and tool to aid in collecting the data. When you start the online SR-AMR, if you have the project’s
+              data on hand, the report should take an estimated 20-30 minutes to complete. We encourage the services staff person
+              preparing the SR-AMR to work with the on-site service provider and property management team to complete this
+              report.</p>
+
+  - type: panel
+    title: Respondent
+    components:
+      - key: respondentName
+        type: textfield
+        label: Respondent name*
+      - key: respondentEmail
+        type: email
+        label: Respondent email*
+      - key: agencyOrCompany
+        type: textfield
+        label: Agency or company*
+      - key: role
+        type: textfield
+        label: Role*
+      - key: contactPhoneNumber
+        type: phoneNumber
+        label: Contact phone number*
+      - key: buildingAddress
+        type: address
+        label: Address of Senior Restricted Building*
+      - key: sponsorAgencyName
+        type: textfield
+        label: Name of Sponsor/Agency*
+      - key: propertyManagementCompany
+        type: textfield
+        label: Name of Property Management Company*
+      - key: serviceProviderName
+        type: textfield
+        label: Name of Service Provider (if applicable)*
+
+  - type: panel
+    title: Data Collection
+    components:
+      - type: fieldset
+        legend: >
+          Services in senior-restricted buildings
+
+          Please report on (7) service areas provided at the senior-restricted Buildings. The areas are as follows:
+
+          1) Annual resident assessments
+
+          2) Non-housing basic needs
+
+          3) Community-building activities
+
+          4) Training and skill development
+
+          5) Service coordination and linkages
+
+          6) Other services
+
+          7) Program learnings.
+
+          Eligible supportive services, categories and examples are provided.
+
+          The reporting period covers January 1 - December 31, 2023.
+        components:
+          - key: 03co1ojd
+            type: block_of_text
+            label: Eligible supportive services and categories and examples
+            required: true
+            description: ''
+      - type: fieldset
+        key: vl9say8m
+        legend: Annual Resident Assessments<br><br>Annual assessments include need assessments and resident satisfaction survey.
+        components:
+          - key: baiq5h4q
+            type: radio
+            label: Needs assessments are distributed at this site.
+            required: true
+            values:
+              - label: 'Yes'
+                value: true
+              - label: 'No'
+                value: false
+          - key: my8kn8lf
+            type: day
+            label: Data collection start date
+            required: true
+            conditions:
+              - value: 'Yes'
+                action: show
+                method: eq
+                response_field_id: baiq5h4q
+          - key: todyo4f2
+            type: day
+            label: Data collection end date
+            required: true
+            conditions:
+              - value: 'Yes'
+                action: show
+                method: eq
+                response_field_id: baiq5h4q
+          - key: qrtrzi7t
+            type: number
+            label: "# of resident surveys collected"
+            required: true
+            conditions:
+              - value: 'Yes'
+                action: show
+                method: eq
+                response_field_id: baiq5h4q
+          - key: qw5kioxh
+            type: radio
+            label: Residents satisfaction surveys are distributed at this site.
+            required: true
+            values:
+              - label: 'Yes'
+                value: true
+              - label: 'No'
+                value: false
+          - key: 8dfzy4by
+            type: day
+            label: Data collection start date
+            required: true
+            conditions:
+              - value: 'Yes'
+                action: show
+                method: eq
+                response_field_id: qw5kioxh
+          - key: 745pk5dy
+            type: day
+            label: Data collection end date
+            required: true
+            conditions:
+              - value: 'Yes'
+                action: show
+                method: eq
+                response_field_id: qw5kioxh
+          - key: r159fyke
+            type: number
+            label: "# of resident surveys collected"
+            required: true
+            conditions:
+              - value: 'Yes'
+                action: show
+                method: eq
+                response_field_id: qw5kioxh
+
+  - type: panel
+    title: Services
+    components:
+      - type: htmlelement
+        tag: style
+        content: >
+          .service-grid {
+            padding-left: 65px;
+          }
+
+          .service-grid .datagrid-table {
+            width: auto;
+            margin-bottom: 60px;
+            table-layout: fixed;
+          }
+
+          .service-grid .datagrid-table th {
+            vertical-align: bottom;
+          }
+
+      - type: fieldset
+        legend: Non-housing basic needs
+        description: >
+          In this section please report on program and services that address non-housing basic needs. Examples includes but not limited to food pantry, transportation support, utility financial assistance.
+        components:
+          - type: serviceOffering
+            key: foodAccess
+            name: on-site programs and services that ensure access to food
+            examples: world kitchen, senior meals on wheels, CalFresh application
+          - type: serviceOffering
+            key: utilityAssistance
+            name: on-site programs and services that address utility financial assistance
+            examples: Monthly stipend, CARE, FERA
+          - type: serviceOffering
+            key: transportSupport
+            name: on-site programs and services that address transportation needs
+            examples: GoGoGrandparent, Clipper Card Assistance, Muni Tokens for Residents,
+              On-site shuttle/Paratransit
+          - type: serviceOffering
+            key: basicNeedsSupport
+            name: on-site programs and services that address non-housing basic needs
+            examples: Housekeeping, Annual Dump Day
+      - type: fieldset
+        legend: Community Building
+        description: >
+          In this section please report on program and services that promote connection and belonging among residents.
+        components:
+          - type: serviceOffering
+            key: socialEventsCommunity
+            name: on-site social events and gatherings that promote community-building
+            examples: Kwanzaa dinner, Knitting Korner, Puzzles and pizza
+          - type: serviceOffering
+            key: exerciseGroupClasses
+            name: on-site group exercise classes
+            examples: Chair yoga, Walking group, Zumba
+          - type: serviceOffering
+            key: enrichmentLearning
+            name: on-site enrichment classes
+            examples: Learn to garden, Walking history tour of SOMA
+          - type: serviceOffering
+            key: communityProgramming
+            name: on-site community-building programming
+      - type: fieldset
+        legend: Training and Education
+        description: >
+          In this section please report on program and services that promote education, skill-building, digital literacy, and workforce readiness.
+        components:
+          - type: serviceOffering
+            key: educationalServices
+            name: on-site educational services
+            examples: GED classes, ESL classes
+          - type: serviceOffering
+            key: lifeSkillsTraining
+            name: on-site life-skills training
+            examples: Learn the Web
+          - type: serviceOffering
+            key: jobSupportTraining
+            name: on-site employment assistance and job trainings
+            examples: Job placement and support, Resume assistance
+      - type: fieldset
+        legend: Service coordination and linkages
+        description: this is a description
+        components:
+          - type: serviceOffering
+            key: individualCaseManagement
+            name: on-site individual case management
+          - type: serviceOffering
+            key: mentalHealthServices
+            name: on-site mental health services
+          - type: serviceOffering
+            key: outpatientCare
+            name: on-site outpatient services
+          - type: serviceOffering
+            key: substanceAbuseSupport
+            name: on-site substance abuse services
+          - type: serviceOffering
+            key: serviceCoordinationOther
+            name: other on-site service coordination and linkages
+      - type: fieldset
+        legend: Other services
+        description: this is a description
+        components:
+          - type: serviceOffering
+            key: otherUnlistedServices
+            name: other on-site services, not listed above
+
+  - type: panel
+    title: Learnings
+    components:
+      - type: fieldset
+        key: 4a5c30tl
+        legend: Program Learnings
+        components:
+          - key: kblop742
+            type: textarea
+            label: What are the program’s top three (3) strengths?
+            required: true
+            description: ''
+          - key: ppb5enrw
+            type: textarea
+            label: What are the program’s top three (3) challenges or areas for improvement?
+            required: true
+            description: ''
+          - key: mgg0ezzs
+            type: textarea
+            label: What are the opportunities for the program?
+            required: true
+            description: ''

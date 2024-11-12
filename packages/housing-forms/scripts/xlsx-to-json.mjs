@@ -1,6 +1,7 @@
 import XLSX from "xlsx";
 import fs from "node:fs";
 import { camelCase } from "forml/src/form/string.js";
+import { generateForm } from "forml/src/form/generateForm.js";
 
 const ContainerComponents = new Set([
 	"form",
@@ -12,7 +13,7 @@ const ContainerComponents = new Set([
 function createComponent(
 	data)
 {
-	const { type, key, required, label, other } = data;
+	const { type, key, required, label, other = "" } = data;
 	const baseKeys = { type, key, required };
 
 	switch (type) {
@@ -105,7 +106,7 @@ function buildForm(
 }
 
 const spreadsheetFilePath = process.argv[2];
-const outputFilePath = process.argv[3] || "form.forml.json";
+const outputFilePath = process.argv[3] || "form.formio.json";
 
 XLSX.set_fs(fs);
 
@@ -128,8 +129,7 @@ for (let col = range.s.c; col <= range.e.c; col++) {
 }
 
 const sheetObjects = XLSX.utils.sheet_to_json(worksheet);
-const form = buildForm(sheetObjects);
-
-//console.log(JSON.stringify(form, null, 2));
+const formData = buildForm(sheetObjects);
+const form = generateForm(formData);
 
 fs.writeFileSync(outputFilePath, JSON.stringify(form, null, "\t"));
