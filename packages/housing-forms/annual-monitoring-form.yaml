@@ -12,10 +12,8 @@ components:
           <p>The Mayor’s Office of Housing and Community Development (MOHCD) is pleased to announce the availability of the Senior
               Restricted Annual Monitoring Report (SR-AMR) form for Fiscal Year 2023-2024 (FY 23-24)</p>
           <p>The SR-AMR was newly added to the Annual Monitoring Report (AMR) cycle as a supplemental Senior Restricted Annual
-              Monitoring Report (SR-AMR) for buildings that are contractually obligated to serve seniors, age 55 and older. See
-              Section 1 below for more information. </p>
-          <h2 id="section-1">Section 1</h2>
-          <h3>Senior Restricted Annual Monitoring Report (SR&#8209;AMR)</h3>
+              Monitoring Report (SR-AMR) for buildings that are contractually obligated to serve seniors, age 55 and older.</p>
+          <h2>Senior Restricted Annual Monitoring Report (SR&#8209;AMR)</h2>
           <p>In accordance with the City’s commitment to racial equity and to San Francisco residents, MOHCD will be conducting
               periodic program evaluations that will include surveys, self-assessments and reporting on impacts and outcomes of its
               senior restricted, affordable housing developments. Beginning with Fiscal Year 2023-2024 (FY 23-24) AMR cycle,
@@ -29,27 +27,28 @@ components:
               affordable housing projects that are contractually obligated to serve seniors aged 55 years or older. Due to the
               status of your building as senior restricted or having senior-restricted units, you are required to submit the SR-AMR.
               The SR-AMR report will be due on December 31st, 2024, for the period 7/1/2023-6/30/2024.</p>
-          <p>The SR-AMR report collects data on 7 service areas:</p>
+          <p>The SR-AMR report collects data on the following service areas:</p>
           <ol>
-              <li>Resident Tenure</li>
+              <li>Residence Tenure</li>
               <li>Annual resident assessments</li>
               <li>Community-building activities</li>
               <li>Non-housing basic needs</li>
-              <li>Training and skill development</li>
+              <li>Trainings and skill development</li>
               <li>Service coordination and linkages</li>
               <li>Other services</li>
               <li>Program Learnings</li>
           </ol>
           <p>Responding to the SR-AMR will require input of the following data points:</p>
           <ol type="a">
-            <li># of late and eviction notices</li>
-            <li>number of surveys distributed</li>
-            <li>the frequency, name of service, # of attendees, for service areas 2-6.</li>
+            <li>Number of late and eviction notices</li>
+            <li>Number of surveys distributed</li>
+            <li>The frequency, name of service, # of attendees, for service areas 3&ndash;7.</li>
           </ol>
           <p>Below is a guide and tool to aid in collecting the data. When you start the online SR-AMR, if you have the project’s
               data on hand, the report should take an estimated 20-30 minutes to complete. We encourage the services staff person
               preparing the SR-AMR to work with the on-site service provider and property management team to complete this
               report.</p>
+          <p><a href="https://www.sf.gov/sites/default/files/2024-11/SR-AMR%20Data%20Preparation%20Tool%20V2.xlsx">Download <strong>SR-AMR Data Preparation Tool V2</strong></a></p>
 
   - type: panel
     title: Respondent
@@ -83,42 +82,32 @@ components:
         label: Name of Service Provider (if applicable)*
 
   - type: panel
-    title: Data Collection
+    title: Residence Data
     components:
       - type: fieldset
-        legend: >
-          Services in senior-restricted buildings
-
-          Please report on (7) service areas provided at the senior-restricted Buildings. The areas are as follows:
-
-          1) Annual resident assessments
-
-          2) Non-housing basic needs
-
-          3) Community-building activities
-
-          4) Training and skill development
-
-          5) Service coordination and linkages
-
-          6) Other services
-
-          7) Program learnings.
-
-          Eligible supportive services, categories and examples are provided.
-
-          The reporting period covers January 1 - December 31, 2023.
+        legend: Residence Tenure
         components:
-          - key: 03co1ojd
-            type: block_of_text
-            label: Eligible supportive services and categories and examples
+          - key: seniorOperatingSubsidyUnits
+            type: number
             required: true
-            description: ''
+            label: "Enter # of units receiving a senior operating subsidy"
+          - key: otherSubsidyUnits
+            type: number
+            required: true
+            label: "Enter # of units receiving other subsidy, project and tenant-based"
+          - key: lateNoticeUnits
+            type: number
+            required: true
+            label: "Enter # of units that received a late notice during this reporting period"
+          - key: evictionNoticeUnits
+            type: number
+            required: true
+            label: "Enter # of units that were issued an eviction notice due to their inability to pay rent during this reporting period"
+
       - type: fieldset
-        key: vl9say8m
         legend: Annual Resident Assessments<br><br>Annual assessments include need assessments and resident satisfaction survey.
         components:
-          - key: baiq5h4q
+          - key: needsAssessmentDistributed
             type: radio
             label: Needs assessments are distributed at this site.
             required: true
@@ -127,34 +116,28 @@ components:
                 value: true
               - label: 'No'
                 value: false
-          - key: my8kn8lf
-            type: day
-            label: Data collection start date
-            required: true
-            conditions:
-              - value: 'Yes'
-                action: show
-                method: eq
-                response_field_id: baiq5h4q
-          - key: todyo4f2
-            type: day
-            label: Data collection end date
-            required: true
-            conditions:
-              - value: 'Yes'
-                action: show
-                method: eq
-                response_field_id: baiq5h4q
-          - key: qrtrzi7t
-            type: number
-            label: "# of resident surveys collected"
-            required: true
-            conditions:
-              - value: 'Yes'
-                action: show
-                method: eq
-                response_field_id: baiq5h4q
-          - key: qw5kioxh
+          - type: container
+            conditional:
+              show: true
+              when: needsAssessmentDistributed
+              eq: true
+            components:
+              - key: needsAssessmentStartDate
+                type: day
+                label: Data collection start date
+                required: true
+              - key: needsAssessmentEndDate
+                type: day
+                label: Data collection end date
+                required: true
+              - key: needsAssessmentSurveysCollected
+                type: number
+                label: "# of resident surveys collected"
+                required: true
+      - type: fieldset
+        legend:
+        components:
+          - key: satisfactionSurveyDistributed
             type: radio
             label: Residents satisfaction surveys are distributed at this site.
             required: true
@@ -163,36 +146,27 @@ components:
                 value: true
               - label: 'No'
                 value: false
-          - key: 8dfzy4by
-            type: day
-            label: Data collection start date
-            required: true
-            conditions:
-              - value: 'Yes'
-                action: show
-                method: eq
-                response_field_id: qw5kioxh
-          - key: 745pk5dy
-            type: day
-            label: Data collection end date
-            required: true
-            conditions:
-              - value: 'Yes'
-                action: show
-                method: eq
-                response_field_id: qw5kioxh
-          - key: r159fyke
-            type: number
-            label: "# of resident surveys collected"
-            required: true
-            conditions:
-              - value: 'Yes'
-                action: show
-                method: eq
-                response_field_id: qw5kioxh
+          - type: container
+            conditional:
+              show: true
+              when: satisfactionSurveyDistributed
+              eq: true
+            components:
+              - key: satisfactionSurveyStartDate
+                type: day
+                label: Data collection start date
+                required: true
+              - key: satisfactionSurveyEndDate
+                type: day
+                label: Data collection end date
+                required: true
+              - key: satisfactionSurveysCollected
+                type: number
+                label: "# of resident surveys collected"
+                required: true
 
   - type: panel
-    title: Services
+    title: Senior Services
     components:
       - type: htmlelement
         tag: style
@@ -211,6 +185,23 @@ components:
             vertical-align: bottom;
           }
 
+      - type: htmlelement
+        tag: div
+        content: >
+          <h3>Services in Senior-Restricted Buildings</h3>
+          <p>Please report on the following seven service areas provided at the senior-restricted buildings. The areas are as follows:</p>
+          <ol>
+              <li>Annual resident assessments</li>
+              <li>Non-housing basic needs</li>
+              <li>Community-building activities</li>
+              <li>Trainings and skill development</li>
+              <li>Service coordination and linkages</li>
+              <li>Other services</li>
+              <li>Program learnings</li>
+          </ol>
+          <p>Eligible supportive services, categories, and examples are provided.</p>
+          <p>The reporting period covers July 1 - June 30, 2024.</p>
+
       - type: fieldset
         legend: Non-housing basic needs
         description: >
@@ -218,7 +209,7 @@ components:
         components:
           - type: serviceOffering
             key: foodAccess
-            name: on-site programs and services that ensure access to food
+            name: access to food
             examples: world kitchen, senior meals on wheels, CalFresh application
           - type: serviceOffering
             key: utilityAssistance
@@ -272,7 +263,8 @@ components:
             examples: Job placement and support, Resume assistance
       - type: fieldset
         legend: Service coordination and linkages
-        description: this is a description
+        description: >
+          Please report on program and services that assess resident needs and link resident to resources.
         components:
           - type: serviceOffering
             key: individualCaseManagement
@@ -280,42 +272,49 @@ components:
           - type: serviceOffering
             key: mentalHealthServices
             name: on-site mental health services
+            examples: Psychotherapy groups, Support groups
           - type: serviceOffering
             key: outpatientCare
             name: on-site outpatient services
+            examples: on-site medical clinic
           - type: serviceOffering
             key: substanceAbuseSupport
             name: on-site substance abuse services
+            examples: Addiction psychotherapy groups,  Recovery peer support groups
           - type: serviceOffering
             key: serviceCoordinationOther
             name: other on-site service coordination and linkages
+          - type: textarea
+            key: internalReferrals
+            label: Please list top 3 internal referrals
+          - type: textarea
+            key: externalReferrals
+            label: Please list top 3 external referrals
       - type: fieldset
         legend: Other services
-        description: this is a description
+        description: >
+          Please enter any other supportive services not included above.
         components:
           - type: serviceOffering
             key: otherUnlistedServices
-            name: other on-site services, not listed above
+            name: other on-site services
+            examples: memory care
 
   - type: panel
     title: Learnings
     components:
       - type: fieldset
-        key: 4a5c30tl
         legend: Program Learnings
         components:
-          - key: kblop742
+          - key: programTopStrengths
             type: textarea
             label: What are the program’s top three (3) strengths?
             required: true
-            description: ''
-          - key: ppb5enrw
+          - key: programTopChallenges
             type: textarea
             label: What are the program’s top three (3) challenges or areas for improvement?
             required: true
-            description: ''
-          - key: mgg0ezzs
+          - key: programOpportunities
             type: textarea
             label: What are the opportunities for the program?
             required: true
-            description: ''

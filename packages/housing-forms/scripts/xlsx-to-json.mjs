@@ -8,13 +8,24 @@ const ContainerComponents = new Set([
 	"panel",
 	"section",
 	"fieldset",
+	"container",
 ]);
 
 function createComponent(
 	data)
 {
-	const { type, key, required, label, other = "" } = data;
+	const { type, key, required, label, conditions, other = "" } = data;
 	const baseKeys = { type, key, required };
+
+	if (type !== "radio" && conditions) {
+		const data = JSON.parse(conditions);
+
+		if (Array.isArray(data)) {
+			baseKeys.conditions = data;
+		} else {
+			baseKeys.conditional = data;
+		}
+	}
 
 	switch (type) {
 		case "serviceOffering":
@@ -44,6 +55,13 @@ function createComponent(
 				title: label,
 			};
 
+		case "radio":
+			return {
+				...baseKeys,
+				label,
+				values: JSON.parse(conditions),
+			};
+
 		default:
 			return {
 				...baseKeys,
@@ -59,9 +77,11 @@ function canContain(
 	const parentType = parent?.type;
 	const childType = child?.type;
 
+	// TODO: this doesn't handle arbitrary depth of parent/child relationships
+
 	if (childType === "panel") {
 		return parentType === "form";
-	} else if (ContainerComponents.has(childType) && parentType !== "panel") {
+	} else if (ContainerComponents.has(childType) && parentType !== "panel" && childType !== "container") {
 		return false;
 	}
 
@@ -132,4 +152,4 @@ const sheetObjects = XLSX.utils.sheet_to_json(worksheet);
 const formData = buildForm(sheetObjects);
 const form = generateForm(formData);
 
-fs.writeFileSync(outputFilePath, JSON.stringify(form, null, "\t"));
+fs.writeFileSync(outputFilePath, JSON.stringify(form, null, 2));

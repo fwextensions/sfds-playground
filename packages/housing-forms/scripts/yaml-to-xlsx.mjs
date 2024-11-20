@@ -8,10 +8,11 @@ const outputFilePath = process.argv[3] || "form.xlsx";
 const data = parse(fs.readFileSync(yamlFilePath, "utf-8"));
 const headers = [
 	["Type", 14],
-	["Key", 24],
+	["Key", 29],
 	["Required", 8],
 	["Label", 50],
 	["Other", 50],
+	["Conditions", 50],
 ];
 const rows = [headers.map(([name]) => name)];
 
@@ -20,19 +21,26 @@ function getCells(
 {
 	const { type, key, required, label, title } = component;
 	const baseKeys = [type, key, required];
+	const conditions = component.conditions ?? component.conditional;
+	const conditionsJSON = conditions ? JSON.stringify(conditions) : undefined;
+
+	// TODO: put rest of component properties into a cell of JSON
 
 	switch (type) {
 		case "serviceOffering":
-			return [...baseKeys, component.name, component.examples];
+			return [...baseKeys, component.name, component.examples, conditionsJSON];
 
 		case "fieldset":
-			return [...baseKeys, component.legend, component.description];
+			return [...baseKeys, component.legend, component.description, conditionsJSON];
 
 		case "htmlelement":
-			return [...baseKeys, component.tag, component.content];
+			return [...baseKeys, component.tag, component.content, conditionsJSON];
+
+		case "radio":
+			return [...baseKeys, label, undefined, JSON.stringify(component.values)];
 
 		default:
-			return [...baseKeys, label ?? title];
+			return [...baseKeys, label ?? title, undefined, conditionsJSON];
 	}
 }
 

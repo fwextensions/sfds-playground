@@ -1,9 +1,9 @@
 The Mayor’s Office of Housing and Community Development (MOHCD) is pleased to announce the availability of the Senior Restricted Annual Monitoring Report (SR-AMR) form for Fiscal Year 2023-2024 (FY 23-24)
 
-The SR-AMR was newly added to the Annual Monitoring Report (AMR) cycle as   a supplemental Senior Restricted Annual Monitoring Report (SR-AMR) for buildings that are contractually obligated to serve seniors, age 55 and older. See Section 1 below for more information.   
+The SR-AMR was newly added to the Annual Monitoring Report (AMR) cycle as a supplemental Senior Restricted Annual Monitoring Report (SR-AMR) for buildings that are contractually obligated to serve seniors, age 55 and older. See Section 1 below for more information.
 
 
-## Section 1: Senior Restricted Annual Monitoring Report (SR-AMR) 
+## Section 1: Senior Restricted Annual Monitoring Report (SR-AMR)
 
 In accordance with the  City’s commitment to racial equity and to San Francisco residents, MOHCD will be conducting periodic program evaluations that will include surveys, self-assessments and reporting on impacts and outcomes of its senior restricted, affordable housing developments. Beginning with Fiscal Year 2023-2024 (FY 23-24) AMR cycle, sponsors of affordable housing developments that serve seniors are now required to submit a Senior Restricted Annual Monitoring Report (SR-AMR).
 
