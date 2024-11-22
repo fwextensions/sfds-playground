@@ -1,4 +1,4 @@
-<h3>Apply to <strong id="listingName"></strong></h3>
+<h3>Apply to <strong class="listingName"></strong></h3>
 <ol>
 	<li>
 		Fill out your information on this form
@@ -19,19 +19,37 @@
 </p>
 
 
+<!-- not open yet section: START -->
+<p style="margin-top: 4em;">
+	<strong class="listingName"></strong> is not yet open for submissions. Please
+	come back and apply when the application period opens on <strong class="listingStartDate"></strong> at <strong class="listingStartTime"></strong>.
+</p>
+<p style="margin-top: 2em;">
+	After that time, please refresh this page to begin the application process.
+</p>
+<!-- not open yet section: END -->
+
+
+
 <!-- code to set the listing name from field in hidden section: START -->
 <script>
-	(function () {
-		const $ = (id) => document.getElementById(id) ?? {};
+	document.addEventListener("FA__DOMContentLoaded", () => {
+		const $ = (query) => Array.from(document.querySelectorAll(query));
 		const [form] = document.forms;
 
 		if (form) {
 			const data = Object.fromEntries(new FormData(form));
+			const listingName = data.tfa_302;
+			const listingStart = new Date(data.tfa_143);
 
-			$("listingName").textContent = data.tfa_302;
+			$("strong.listingName").forEach((el) => el.textContent = listingName);
+			$("strong.listingStartDate").forEach((el) => el.textContent = listingStart.toLocaleDateString());
+			$("strong.listingStartTime").forEach((el) => el.textContent = listingStart.toLocaleTimeString());
 		}
-	})();
+	});
 </script>
+
+code to update variable fields
 <!-- code to set the listing name from field in hidden section: END -->
 
 
