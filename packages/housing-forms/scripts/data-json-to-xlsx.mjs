@@ -30,6 +30,17 @@ function processRecords(
 						setRecordRowCol(recordRows, i, `${key}.${gridKey}`, gridValue);
 					}
 				})
+			} else if (typeof value === "object") {
+				if (/address/i.test(key)) {
+					const { street, city, state, zip } = value;
+					const addressString = `${street}\n${city}, ${state} ${zip}`;
+
+					setRecordRowCol(recordRows, 0, key, addressString);
+				} else {
+					for (const [objKey, objValue] of Object.entries(value)) {
+						setRecordRowCol(recordRows, 0, `${key}.${objKey}`, objValue);
+					}
+				}
 			} else {
 				setRecordRowCol(recordRows, 0, key, value);
 			}

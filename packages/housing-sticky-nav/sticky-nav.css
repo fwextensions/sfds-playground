@@ -1,0 +1,53 @@
+html {
+	scroll-padding-top: var(--sticky-nav-bar-height);
+	/*scroll-behavior: smooth;*/
+}
+
+#sticky-nav-bar {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	background-color: #fff;
+	margin: 0 auto;
+	width: 100%;
+	max-width: var(--bloom-width-5xl);
+
+	.container {
+		padding: .75rem;
+		max-width: 100%;
+		overflow-x: auto;
+		overflow-y: hidden;
+		display: flex;
+		justify-content: space-between;
+		gap: .75rem;
+	}
+
+	a {
+		color: var(--components-tabs-label-color, #767676);
+		font-family: var(--type-family-sans-alt, Lato);
+		font-size: var(--type-size-body, 16px);
+		font-style: normal;
+		font-weight: 600;
+		line-height: var(--type-line-height-body, 24px); /* 150% */
+
+		padding: 1em 3em;
+		display: flex;
+		flex-direction: row;
+		align-items: baseline;
+		justify-content: center;
+		gap: .5em;
+		flex: 1 0 0;
+		min-width: max-content;
+
+		border-top: var(--borders-width-1, 1px) solid var(--components-tabs-border-color, #DEDEE0);
+		border-right: 1px solid var(--components-tabs-border-color, #DEDEE0);
+		border-bottom: var(--borders-width-1, 1px) solid var(--components-tabs-border-color, #DEDEE0);
+		border-left: var(--borders-width-1, 1px) solid var(--components-tabs-border-color, #DEDEE0);
+		background: var(--components-tabs-background-color, #FFF);
+	}
+
+	a.selected {
+		color: var(--components-tabs-active-label-color, #222);
+		border-bottom: var(--components-tabs-active-indicator-width, 2px) solid var(--components-tabs-active-indicator-color, #0077DA);
+	}
+}

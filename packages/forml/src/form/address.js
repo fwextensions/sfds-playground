@@ -10,9 +10,10 @@ export function address(
 {
 		// create a copy of the skeleton so each component is separate
 	const component = yaml.parse(skeleton);
-//	const component = JSON.parse(JSON.stringify(skeleton));
 
 	component.key = data.key;
+	component.tableView = true;
+	component.input = true;
 
 	return component;
 }

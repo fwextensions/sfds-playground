@@ -15,6 +15,7 @@ const ComponentProperties = [
 	["panel", {
 		...TableInputFalse,
 		collapsible: false,
+		scrollToTop: true,
 	}],
 	["textfield"],
 	["email", {
