@@ -27,7 +27,7 @@ const Columns = [
 	},
 	{
 		key: "served",
-		label: "Number of people served during reporting period",
+		label: "Total number of individuals serviced during reporting period",
 		type: "number",
 	},
 ];
