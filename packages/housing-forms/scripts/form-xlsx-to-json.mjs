@@ -17,7 +17,7 @@ function createComponent(
 	const { type, key, required, label, conditions, other = "" } = data;
 	const baseKeys = { type, key, required };
 
-	if (type !== "radio" && conditions) {
+	if (!["radio", "select"].includes(type) && conditions) {
 		const data = JSON.parse(conditions);
 
 		if (Array.isArray(data)) {
@@ -60,6 +60,15 @@ function createComponent(
 				...baseKeys,
 				label,
 				values: JSON.parse(conditions),
+			};
+
+		case "select":
+			return {
+				...baseKeys,
+				label,
+				data: {
+					values: JSON.parse(conditions),
+				}
 			};
 
 		default:

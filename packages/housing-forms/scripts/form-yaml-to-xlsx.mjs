@@ -37,6 +37,7 @@ function getCells(
 			return [...baseKeys, component.tag, component.content, conditionsJSON];
 
 		case "radio":
+		case "selectboxes":
 			return [...baseKeys, label, undefined, JSON.stringify(component.values)];
 
 		default:

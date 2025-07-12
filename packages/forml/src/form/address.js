@@ -15,5 +15,9 @@ export function address(
 	component.tableView = true;
 	component.input = true;
 
+	if (data.conditional) {
+		component.conditional = data.conditional;
+	}
+
 	return component;
 }
