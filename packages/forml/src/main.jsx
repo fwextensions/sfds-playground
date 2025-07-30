@@ -2,9 +2,9 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "@/components/App.jsx";
 import { generateForm } from "@/form/generateForm.js";
-import formData from "../formio.json";
+//import formData from "../formio.json";
 //import formData from "../annual-monitoring-form.json";
-//import formData from "../annual-monitoring-form.yaml";
+import formData from "../annual-monitoring-form.yaml";
 //import formData from "../form.yaml";
 import { listing } from "../listing.json";
 import "./global.css";
@@ -12,11 +12,11 @@ import "./global.css";
 let form;
 let errorMessage;
 
-try {
+//try {
 	form = generateForm(formData);
-} catch (e) {
-	errorMessage = e.message;
-}
+//} catch (e) {
+//	errorMessage = e.message;
+//}
 
 console.log(form);
 

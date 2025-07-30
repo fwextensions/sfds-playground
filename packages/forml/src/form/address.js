@@ -1,15 +1,13 @@
-//import skeleton from "./address.yaml" assert { type: "text" };
-import yaml from "yaml";
-import { readFile } from "node:fs/promises";
+import { clone, loadYaml } from "./utils.js";
 
-const skeleton = await readFile(new URL("./address.yaml", import.meta.url), "utf-8");
+const skeleton = await loadYaml("address.yaml");
 
 export function address(
 	data,
 	context)
 {
 		// create a copy of the skeleton so each component is separate
-	const component = yaml.parse(skeleton);
+	const component = clone(skeleton);
 
 	component.key = data.key;
 	component.tableView = true;

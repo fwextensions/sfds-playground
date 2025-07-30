@@ -9,6 +9,7 @@ const ContainerComponents = new Set([
 	"section",
 	"fieldset",
 	"container",
+	"serviceSection",
 ]);
 
 function createComponent(
@@ -20,11 +21,7 @@ function createComponent(
 	if (!["radio", "select"].includes(type) && conditions) {
 		const data = JSON.parse(conditions);
 
-		if (Array.isArray(data)) {
-			baseKeys.conditions = data;
-		} else {
-			baseKeys.conditional = data;
-		}
+		Object.assign(baseKeys, data);
 	}
 
 	switch (type) {
@@ -35,6 +32,7 @@ function createComponent(
 				examples: other.trim(),
 			};
 
+		case "serviceSection":
 		case "fieldset":
 			return {
 				...baseKeys,
@@ -113,19 +111,21 @@ function buildForm(
 	while (!current.done) {
 		const component = createComponent(current.value);
 
-		if (!ContainerComponents.has(component.type)) {
-			currentParent.components.push(component);
-		} else {
-			component.components = [];
+		if (component.type) {
+			if (!ContainerComponents.has(component.type)) {
+				currentParent.components.push(component);
+			} else {
+				component.components = [];
 
-			while (!canContain(currentParent, component)) {
-				stack.pop();
-				currentParent = stack.at(-1);
+				while (!canContain(currentParent, component)) {
+					stack.pop();
+					currentParent = stack.at(-1);
+				}
+
+				currentParent.components.push(component);
+				currentParent = component;
+				stack.push(component);
 			}
-
-			currentParent.components.push(component);
-			currentParent = component;
-			stack.push(component);
 		}
 
 		current = iterator.next();
@@ -158,7 +158,11 @@ for (let col = range.s.c; col <= range.e.c; col++) {
 }
 
 const sheetObjects = XLSX.utils.sheet_to_json(worksheet);
+//console.log(sheetObjects.slice(33, 37));
+
+//const formData = buildForm(sheetObjects.slice(33));
 const formData = buildForm(sheetObjects);
+
 const form = generateForm(formData);
 
 fs.writeFileSync(outputFilePath, JSON.stringify(form, null, 2));

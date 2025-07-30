@@ -1,6 +1,7 @@
 import { panelGroup } from "./panelGroup.js";
 import { table } from "./table.js";
 import { serviceOffering } from "./serviceOffering.js";
+import { serviceSection } from "./serviceSection.js";
 import { address } from "./address.js";
 
 const TableInputTrue = {
@@ -79,12 +80,20 @@ const ComponentProperties = [
 		// type is specified as well
 		type: "htmlelement",
 		...TableInputFalse,
+		refreshOnChange: false,
+		attrs: [
+			{
+				attr: "",
+				value: ""
+			}
+		],
 	}],
 	["columns",
 		TableInputFalse
 	],
 	["textarea", {
-		autoExpand: true,
+		autoExpand: false,
+//		autoExpand: true,
 	}],
 	["file",
 		TableInputTrue
@@ -103,6 +112,7 @@ export const ComponentBases = ComponentProperties.reduce((result, [key, props]) 
 	panelGroup,
 	table,
 	serviceOffering,
+	serviceSection,
 	address,
 });
 

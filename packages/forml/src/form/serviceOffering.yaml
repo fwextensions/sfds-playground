@@ -1,0 +1,60 @@
+type: container
+key:
+input: true
+tableView: true
+customClass: service-offering
+components:
+  - type: radio
+    key: offered
+    label:
+    validate:
+      required: true
+    labelPosition: right-left
+    labelWidth: 80
+    labelMargin: 1
+    inline: true
+    values:
+      - label: Yes
+        value: true
+      - label: No
+        value: false
+
+  - type: columns
+    customClass: service-offering-columns
+    conditional:
+      show: true
+      when:
+      eq: true
+    columns:
+      - components:
+          - type: number
+            key: occurrences
+            label: "How many times did the program happen?"
+            labelPosition: left-left
+            labelWidth: 60
+            clearOnHide: false
+          - type: number
+            key: averageClients
+            label: "Average # of clients per time:"
+            labelPosition: left-left
+            labelWidth: 60
+            clearOnHide: false
+          - type: number
+            key: totalClientEncounters
+            label: "Client encounters:"
+            labelPosition: left-left
+            labelWidth: 60
+            disabled: true
+            calculateValue: |
+              const { occurrences, averageClients } = row || {};
+              value = occurrences * averageClients;
+        width: 5
+
+      - components:
+          - type: textarea
+            key: description
+            label: "Please describe programming, including when and how services were delivered (e.g. as needed ERAP payments, or weekly in-person case management):"
+            rows: 6
+            customClass: h-full
+            clearOnHide: false
+        width: 7

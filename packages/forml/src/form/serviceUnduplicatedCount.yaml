@@ -1,0 +1,13 @@
+components:
+  - type: number
+    key: unduplicatedClients
+    label: "# of <abbr title=\"Number of unique clients or entities counted only once, regardless of how many times they appear or receive a service. (e.g., if 75 clients received individual case management and all 75 clients came back multiple times, the unduplicated count is 75 , even if the total number of encounters are higher).\">unduplicated clients</abbr> during reporting period:"
+    labelPosition: left-left
+    labelWidth: 60
+    clearOnHide: false
+  - type: number
+    key: clientEncounters
+    label: "Client encounters:"
+    labelPosition: left-left
+    labelWidth: 60
+    clearOnHide: false
